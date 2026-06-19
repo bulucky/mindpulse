@@ -1,5 +1,14 @@
+if(WIN32)
+    set(PLATFORM_UI_SOURCES ui/tray_win.cpp)
+else()
+    set(PLATFORM_UI_SOURCES ui/tray_stub.cpp)
+endif()
+
 set(MAIN_SOURCES
     main.cpp
+    core/breath_engine.cpp
+    core/icon_renderer.cpp
+    ${PLATFORM_UI_SOURCES}
 )
 
 add_executable(${PROJECT_NAME}

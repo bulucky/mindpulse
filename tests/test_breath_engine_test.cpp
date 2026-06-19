@@ -1,21 +1,21 @@
 /**
  * @file test_breath_engine_test.cpp
- * @brief 验证呼吸曲线和过渡特性的单元测试
+ * @brief 验证呼吸曲线、自旋角度和过渡特性的单元测试
  */
 
 #include <gtest/gtest.h>
 #include "core/breath_engine.h"
 
-// 验证初始状态为 STOPPED 且亮度与颜色正确
+// 验证初始状态为 STOPPED 且亮度与新颜色 (#792740) 正确
 TEST(BreathEngineTest, InitialStateStopped) {
     BreathEngine engine;
     EXPECT_EQ(engine.get_current_state(), BreathState::STOPPED);
     EXPECT_NEAR(engine.get_current_brightness(), 0.15, 0.001);
     
     ColorRGB color = engine.get_current_color();
-    EXPECT_DOUBLE_EQ(color.r, 231.0);
-    EXPECT_DOUBLE_EQ(color.g, 130.0);
-    EXPECT_DOUBLE_EQ(color.b, 132.0);
+    EXPECT_DOUBLE_EQ(color.r, 121.0);
+    EXPECT_DOUBLE_EQ(color.g, 39.0);
+    EXPECT_DOUBLE_EQ(color.b, 64.0);
 }
 
 // 验证在 0.5s 平滑过渡阶段的过渡因子和状态正确性
@@ -60,10 +60,9 @@ TEST(BreathEngineTest, IdleBreathingCurvePoints) {
     EXPECT_NEAR(engine.get_current_brightness(), 0.15, 0.001);
 }
 
-// 验证过渡的平滑性（无突变抖动）
+// 验证过渡的平滑性（无突变悬崖）
 TEST(BreathEngineTest, TransitionSmoothness) {
     BreathEngine engine;
-    // 从极暗切换到目标状态，验证过渡期的数值变化是否是渐进的
     double prev_brightness = engine.get_current_brightness();
     engine.transition_to(BreathState::RUNNING);
 
@@ -71,8 +70,21 @@ TEST(BreathEngineTest, TransitionSmoothness) {
         engine.tick(0.05); // 每帧 50ms
         double curr_brightness = engine.get_current_brightness();
         
-        // 验证过渡期间有明显的平滑渐变，无突变
         EXPECT_NEAR(curr_brightness - prev_brightness, (1.0 - 0.15) * 0.1, 0.15);
         prev_brightness = curr_brightness;
     }
+}
+
+// 验证自旋角度在运行状态下累加
+TEST(BreathEngineTest, RotationAngleAccumulates) {
+    BreathEngine engine;
+    engine.transition_to(BreathState::RUNNING);
+    engine.tick(0.5); // 消除过渡
+
+    double initial_angle = engine.get_current_rotation_angle();
+    engine.tick(0.1); // tick 100ms
+    double next_angle = engine.get_current_rotation_angle();
+
+    // 在 RUNNING 状态下，角速度 > 0，累加的角度应当大于初始值
+    EXPECT_GT(next_angle, initial_angle);
 }

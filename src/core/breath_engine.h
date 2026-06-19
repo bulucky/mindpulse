@@ -10,11 +10,11 @@
 /**
  * @brief 呼吸灯的状态枚举
  */
-enum class BreathState {
-    STOPPED,  ///< 浅红静止
-    IDLE,     ///< 白深慢呼吸
-    RUNNING,  ///< 浅蓝活跃呼吸
-    PENDING   ///< 黄橙间歇脉冲
+enum class BreathState { // NOLINT
+    STOPPED,             ///< 浅红静止
+    IDLE,                ///< 白深慢呼吸
+    RUNNING,             ///< 浅蓝活跃呼吸
+    PENDING              ///< 黄橙间歇脉冲
 };
 
 /**
@@ -61,6 +61,12 @@ public:
     ColorRGB get_current_color() const;
 
     /**
+     * @brief 获取当前帧累积的旋转角度（弧度）
+     * @return 旋转角度值
+     */
+    double get_current_rotation_angle() const;
+
+    /**
      * @brief 获取当前所处的真实目标状态
      * @return BreathState
      */
@@ -88,17 +94,26 @@ private:
      */
     ColorRGB get_state_color(BreathState state) const;
 
-    BreathState current_state_;           ///< 当前目标状态
-    double state_time_;                   ///< 当前状态已持续的时间（秒）
+    /**
+     * @brief 获取特定状态下的基准旋转角速度（弧度/秒）
+     * @param state 目标状态
+     * @return 角速度值
+     */
+    double get_state_base_spin_rate(BreathState state) const;
+
+    BreathState current_state_; ///< 当前目标状态
+    double state_time_;         ///< 当前状态已持续的时间（秒）
+    double rotation_angle_;     ///< 当前旋转角度值（弧度）
 
     // 过渡状态相关变量
-    bool in_transition_;                  ///< 是否处于过渡状态中
-    double transition_time_;              ///< 过渡已持续的时间（秒）
-    const double transition_duration_;    ///< 过渡总时长（固定 0.5 秒）
+    bool in_transition_;                 ///< 是否处于过渡状态中
+    double transition_time_;             ///< 过渡已持续的时间（秒）
+    const double transition_duration_;   ///< 过渡总时长（固定 0.5 秒）
 
-    double transition_start_brightness_;  ///< 过渡起点时的亮度
-    ColorRGB transition_start_color_;     ///< 过渡起点时的颜色
+    double transition_start_brightness_; ///< 过渡起点时的亮度
+    ColorRGB transition_start_color_;    ///< 过渡起点时的颜色
+    double transition_start_spin_rate_;  ///< 过渡起点时的自旋角速度
 
-    double current_brightness_;           ///< 当前帧最终计算得到的亮度
-    ColorRGB current_color_;              ///< 当前帧最终计算得到的颜色
+    double current_brightness_;          ///< 当前帧最终计算得到的亮度
+    ColorRGB current_color_;             ///< 当前帧最终计算得到的颜色
 };
