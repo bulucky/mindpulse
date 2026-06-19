@@ -26,10 +26,14 @@ FetchContent_Declare(
     GIT_SHALLOW    TRUE
 )
 
-# # MinGW 缺少 GetAddrInfoExCancel 声明，且本项目仅用 127.0.0.1 无需异步 DNS
-# set(HTTPLIB_USE_NON_BLOCKING_GETADDRINFO OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.17.x
+)
 
-FetchContent_MakeAvailable(httplib json)
+FetchContent_MakeAvailable(httplib json googletest)
+enable_testing()
 
 add_executable(${PROJECT_NAME} src/main.cpp)
 
@@ -42,6 +46,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     nlohmann_json::nlohmann_json
 )
 
+add_subdirectory(tests)
 
 if(WIN32)
     add_compile_definitions(_WIN32_WINNT=0x0A00)
