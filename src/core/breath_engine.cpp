@@ -5,7 +5,7 @@
 
 #include "core/breath_engine.h"
 #include <cmath>
-#include <algorithm>
+// #include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846

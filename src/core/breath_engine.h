@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <cstdint>
+// #include <cstdint>
 
 /**
  * @brief 呼吸灯的状态枚举
