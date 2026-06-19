@@ -35,26 +35,27 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(httplib json googletest)
 enable_testing()
 
-add_executable(${PROJECT_NAME} src/main.cpp)
+# add_executable(${PROJECT_NAME} src/main.cpp)
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
+# target_include_directories(${PROJECT_NAME} PRIVATE
+#     ${CMAKE_CURRENT_SOURCE_DIR}/src
+# )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    httplib::httplib
-    nlohmann_json::nlohmann_json
-)
+# target_link_libraries(${PROJECT_NAME} PRIVATE
+#     httplib::httplib
+#     nlohmann_json::nlohmann_json
+# )
 
+add_subdirectory(src)
 add_subdirectory(tests)
 
-if(WIN32)
-    add_compile_definitions(_WIN32_WINNT=0x0A00)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32)
-endif()
+# if(WIN32)
+#     add_compile_definitions(_WIN32_WINNT=0x0A00)
+#     target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32)
+# endif()
 
-if(MINGW)
-    target_link_options(${PROJECT_NAME} PRIVATE
-        -static-libgcc -static-libstdc++ -static
-    )
-endif()
+# if(MINGW)
+#     target_link_options(${PROJECT_NAME} PRIVATE
+#         -static-libgcc -static-libstdc++ -static
+#     )
+# endif()
