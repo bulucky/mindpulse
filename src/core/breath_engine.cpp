@@ -122,7 +122,7 @@ double BreathEngine::calculate_state_brightness(BreathState state, double time_s
             return 0.15; // 静止暗态
 
         case BreathState::IDLE: {
-            double period = 4.0; // 4s 周期
+            double period = 4.0;   // 4s 周期
             double t = std::fmod(time_sec, period);
             double p = t / period; // 归一化相位 [0, 1)
 
@@ -172,7 +172,7 @@ double BreathEngine::calculate_state_brightness(BreathState state, double time_s
                 // 处于 3 次脉冲爆发期
                 double local_t = std::fmod(t, 0.5); // 单个脉冲 0.5s
                 double u = local_t / 0.5;
-                double y = std::sin(M_PI * u); // 正弦脉冲波形
+                double y = std::sin(M_PI * u);      // 正弦脉冲波形
                 return 0.15 + 0.85 * y;
             } else {
                 // 处于 1.5s 停顿静止期
@@ -188,9 +188,9 @@ double BreathEngine::calculate_state_brightness(BreathState state, double time_s
 ColorRGB BreathEngine::get_state_color(BreathState state) const {
     switch (state) {
         case BreathState::STOPPED:
-            return {121.0, 39.0, 64.0};  // #792740
+            return {121.0, 39.0, 64.0};   // #792740
         case BreathState::IDLE:
-            return {236.0, 242.0, 255.0}; // #ecf2ff
+            return {105.0, 173.0, 155.0}; // #69ad9b
         case BreathState::RUNNING:
             return {97.0, 100.0, 159.0};  // #61649f
         case BreathState::PENDING:
@@ -202,13 +202,13 @@ ColorRGB BreathEngine::get_state_color(BreathState state) const {
 double BreathEngine::get_state_base_spin_rate(BreathState state) const {
     switch (state) {
         case BreathState::STOPPED:
-            return 0.0;   // 静止不旋转
+            return 0.0; // 静止不旋转
         case BreathState::IDLE:
-            return 1.5;   // 慢速旋转 (~1.5 rad/s)
+            return 1.5; // 慢速旋转 (~1.5 rad/s)
         case BreathState::RUNNING:
-            return 4.0;   // 快速旋转 (~4.0 rad/s)
+            return 4.0; // 快速旋转 (~4.0 rad/s)
         case BreathState::PENDING:
-            return 6.0;   // 脉冲高速自旋 (~6.0 rad/s)
+            return 6.0; // 脉冲高速自旋 (~6.0 rad/s)
     }
     return 0.0;
 }

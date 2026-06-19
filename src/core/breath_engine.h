@@ -52,31 +52,31 @@ public:
      * @brief 获取当前帧计算得到的亮度值
      * @return 亮度值 [0.15, 1.0]
      */
-    double get_current_brightness() const;
+    [[nodiscard]] double get_current_brightness() const;
 
     /**
      * @brief 获取当前帧计算得到的颜色值
      * @return ColorRGB 颜色结构体
      */
-    ColorRGB get_current_color() const;
+    [[nodiscard]] ColorRGB get_current_color() const;
 
     /**
      * @brief 获取当前帧累积的旋转角度（弧度）
      * @return 旋转角度值
      */
-    double get_current_rotation_angle() const;
+    [[nodiscard]] double get_current_rotation_angle() const;
 
     /**
      * @brief 获取当前所处的真实目标状态
      * @return BreathState
      */
-    BreathState get_current_state() const;
+    [[nodiscard]] BreathState get_current_state() const;
 
     /**
      * @brief 判断当前是否处于平滑过渡中
      * @return bool
      */
-    bool is_in_transition() const;
+    [[nodiscard]] bool is_in_transition() const;
 
 private:
     /**
@@ -85,21 +85,21 @@ private:
      * @param time_sec 该状态累计运行时间（秒）
      * @return 计算出的亮度值
      */
-    double calculate_state_brightness(BreathState state, double time_sec) const;
+    [[nodiscard]] double calculate_state_brightness(BreathState state, double time_sec) const;
 
     /**
      * @brief 获取特定状态的基准颜色值
      * @param state 目标状态
      * @return ColorRGB
      */
-    ColorRGB get_state_color(BreathState state) const;
+    [[nodiscard]] ColorRGB get_state_color(BreathState state) const;
 
     /**
      * @brief 获取特定状态下的基准旋转角速度（弧度/秒）
      * @param state 目标状态
      * @return 角速度值
      */
-    double get_state_base_spin_rate(BreathState state) const;
+    [[nodiscard]] double get_state_base_spin_rate(BreathState state) const;
 
     BreathState current_state_; ///< 当前目标状态
     double state_time_;         ///< 当前状态已持续的时间（秒）

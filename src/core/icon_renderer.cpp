@@ -19,7 +19,7 @@ double smoothstep(double edge0, double edge1, double x) {
     double t = std::max(0.0, std::min(1.0, (x - edge0) / (edge1 - edge0)));
     return t * t * (3.0 - 2.0 * t);
 }
-}
+} // namespace
 
 IconRenderer::IconRenderer(int width, int height)
     : width_(width), height_(height) {}
@@ -40,14 +40,14 @@ std::vector<uint8_t> IconRenderer::render(double brightness, double rotation_ang
     double scale = width_ / 32.0;
 
     // 旋转圆环基本参数
-    double r_mid = 9.5 * scale;        // 圆环中心半径
-    double r_width = 2.0 * scale;      // 圆环边缘的高斯半径/宽度标准差
-    double sigma_mask = 12.0 * scale;  // 底噪遮罩标准差
+    double r_mid = 9.5 * scale;       // 圆环中心半径
+    double r_width = 2.0 * scale;     // 圆环边缘的高斯半径/宽度标准差
+    double sigma_mask = 12.0 * scale; // 底噪遮罩标准差
 
     // 三等分缺口与黄金比例设计
     // 圆环被分为三个扇区，每个扇区 120 度 (2*PI / 3)
-    double sector_angle = (2.0 * M_PI) / 3.0; 
-    
+    double sector_angle = (2.0 * M_PI) / 3.0;
+
     // 实心段与缺口段符合黄金比例：实心部分占约 61.803%，空心段占约 38.197%
     double solid_angle = sector_angle * 0.6180339887;
     double transition_width = 0.15; // 边缘羽化宽度（单位：弧度，约 8.6 度），防止旋转产生闪烁锯齿
@@ -85,13 +85,13 @@ std::vector<uint8_t> IconRenderer::render(double brightness, double rotation_ang
             // 6. 附加背景光晕 (Subtle Glow)：使环即使在缺口处也带有淡淡的、随呼吸波动的光环，提升呼吸灯质感
             double i_glow = std::exp(-(d - r_mid) * (d - r_mid) / (2.0 * 5.0 * scale * 5.0 * scale));
             double glow_intensity = brightness * 0.25 * i_glow;
-            
+
             double total_intensity = intensity + glow_intensity;
 
             // 7. 底噪遮罩淡出，防止纯四角边缘截断产生虚线框
             double noise_mask = std::exp(-(d * d) / (2.0 * sigma_mask * sigma_mask));
             double alpha = std::max(total_intensity, 0.03 * noise_mask);
-            
+
             if (alpha > 1.0) {
                 alpha = 1.0;
             }
@@ -103,9 +103,9 @@ std::vector<uint8_t> IconRenderer::render(double brightness, double rotation_ang
 
             // 8. 填充 BGRA 缓冲区 (Windows DIB 要求字节序列为 B、G、R、A)
             int pixel_offset = 4 * (y * width_ + x);
-            buffer[pixel_offset + 0] = static_cast<uint8_t>(b_val); // Blue
-            buffer[pixel_offset + 1] = static_cast<uint8_t>(g_val); // Green
-            buffer[pixel_offset + 2] = static_cast<uint8_t>(r_val); // Red
+            buffer[pixel_offset + 0] = static_cast<uint8_t>(b_val);         // Blue
+            buffer[pixel_offset + 1] = static_cast<uint8_t>(g_val);         // Green
+            buffer[pixel_offset + 2] = static_cast<uint8_t>(r_val);         // Red
             buffer[pixel_offset + 3] = static_cast<uint8_t>(alpha * 255.0); // Alpha
         }
     }
