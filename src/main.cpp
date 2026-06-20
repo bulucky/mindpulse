@@ -51,7 +51,7 @@ int main() {
 #endif
 
 int run_app() {
-    std::printf("=== MindPulse 启动 ===\n");
+    std::printf("=== MindPulse Startup ===\n");
 
     // 1. 初始化配置文件目录（优先检测本地 config 目录，其次检测上一级中的 config）
     std::string config_dir = "./config";
@@ -65,7 +65,7 @@ int run_app() {
     } catch (...) {
         // 容错处理
     }
-    std::printf("[Main] 使用配置文件路径: %s\n", config_dir.c_str());
+    std::printf("[Main] Using config directory: %s\n", config_dir.c_str());
 
     // 2. 初始化核心组件
     ConfigManager config_mgr(config_dir);
@@ -82,14 +82,14 @@ int run_app() {
     const std::string host = "127.0.0.1";
     const int port = 9876;
     if (!server.start(host, port)) {
-        std::printf("[Main] 启动 HTTP 服务失败！程序退出。\n");
+        std::printf("[Main] Failed to start HTTP server! Exiting.\n");
         return 1;
     }
 
     // 4. 创建系统托盘实例
     std::unique_ptr<ITray> tray = create_platform_tray();
     if (!tray || !tray->init()) {
-        std::printf("[Main] 系统托盘初始化失败！程序退出。\n");
+        std::printf("[Main] Failed to initialize system tray! Exiting.\n");
         server.stop();
         return 1;
     }
@@ -114,15 +114,15 @@ int run_app() {
     // 退出选项
     TrayMenuItem exit_item;
     exit_item.id = 102;
-    exit_item.text = "退出 (Exit)";
+    exit_item.text = "Exit";
     exit_item.enabled = true;
     exit_item.callback = [&app_running]() {
-        std::printf("[Main] 用户触发右键退出菜单，正在退出...\n");
+        std::printf("[Main] User triggered exit menu item, exiting...\n");
         app_running = false;
     };
     tray->add_menu_item(exit_item);
 
-    std::printf("[Main] 托盘与右键菜单绑定成功，进入动画帧更新循环...\n");
+    std::printf("[Main] Tray and context menu bound successfully, entering animation frame update loop...\n");
 
     // 6. 进入 60fps 主更新循环
     const double target_dt = 0.016; // 约 60fps
@@ -168,7 +168,7 @@ int run_app() {
 
     // 7. 清理并退出后台服务
     server.stop();
-    std::printf("=== MindPulse 安全退出 ===\n");
+    std::printf("=== MindPulse Clean Exit ===\n");
 
     return 0;
 }
