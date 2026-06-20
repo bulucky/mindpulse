@@ -119,6 +119,25 @@ TEST(StateMachineTest, PendingClearsOnToolEnd) {
     EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
 }
 
+// 验证等待用户确认时，普通活动信号不能抢占 PENDING 指示
+TEST(StateMachineTest, PendingIsStickyUntilExplicitRecovery) {
+    StateMachine sm;
+    sm.handle_event("claude", StateMachineEvent::SESSION_START);
+    sm.handle_event("claude", StateMachineEvent::USER_PROMPT_SUBMIT);
+    sm.handle_event("claude", StateMachineEvent::PERMISSION_REQUEST);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+
+    sm.handle_event("claude", StateMachineEvent::AGENT_RUNNING);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+    EXPECT_EQ(sm.get_aggregate_state(), BreathState::PENDING);
+
+    sm.handle_event("claude", StateMachineEvent::NOOP);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+
+    sm.handle_event("claude", StateMachineEvent::PERMISSION_DENIED);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+}
+
 // 验证无配对事件不会增加嵌套计数，活动信号只改变状态
 TEST(StateMachineTest, NonCountingEventsDoNotLeakActiveCount) {
     StateMachine sm;

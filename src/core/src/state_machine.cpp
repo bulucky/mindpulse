@@ -89,7 +89,7 @@ BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineE
             break;
 
         case StateMachineEvent::AGENT_RUNNING:
-            if (ctx.state != BreathState::STOPPED) {
+            if (ctx.state != BreathState::STOPPED && ctx.state != BreathState::PENDING) {
                 ctx.state = BreathState::RUNNING;
             }
             break;
