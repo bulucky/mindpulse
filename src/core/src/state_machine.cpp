@@ -31,6 +31,8 @@ static const char* event_to_string(StateMachineEvent event) {
     switch (event) {
         case StateMachineEvent::SESSION_START:
             return "SESSION_START";
+        case StateMachineEvent::SESSION_ACTIVE:
+            return "SESSION_ACTIVE";
         case StateMachineEvent::SESSION_END:
             return "SESSION_END";
         case StateMachineEvent::USER_PROMPT_SUBMIT:
@@ -78,6 +80,14 @@ BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineE
             ctx.turn_active = false;
             ctx.state = BreathState::IDLE;
             ctx.active_tool_count = 0;
+            break;
+
+        case StateMachineEvent::SESSION_ACTIVE:
+            ctx.session_active = true;
+            if (ctx.state == BreathState::STOPPED) {
+                ctx.state = BreathState::IDLE;
+                ctx.active_tool_count = 0;
+            }
             break;
 
         case StateMachineEvent::SESSION_END:

@@ -39,6 +39,17 @@ TEST(HttpServerTest, DispatchEventsToStateMachine) {
     httplib::Client client("127.0.0.1", 19876);
     client.set_connection_timeout(0, 500000); // 500ms 超时
 
+    // 2.1 初始状态可查询，且未收到任何 Hook 事件
+    {
+        auto status_res = client.Get("/status/claude");
+        ASSERT_NE(status_res, nullptr);
+        EXPECT_EQ(status_res->status, 200);
+        auto status = nlohmann::json::parse(status_res->body);
+        EXPECT_EQ(status["state"], "STOPPED");
+        EXPECT_EQ(status["last_event"], "UNKNOWN");
+        EXPECT_EQ(status["received_event_count"], 0);
+    }
+
     // 3. 测试发送非法 JSON
     {
         auto res = client.Post("/hook/claude", "invalid { json", "application/json");
@@ -75,6 +86,10 @@ TEST(HttpServerTest, DispatchEventsToStateMachine) {
         EXPECT_EQ(status["aggregate_state"], "IDLE");
         EXPECT_EQ(status["active_tool_count"], 0);
         EXPECT_EQ(status["last_event"], "SESSION_START");
+        EXPECT_EQ(status["received_event_count"], 1);
+        EXPECT_EQ(status["last_raw_event"], "SessionStart");
+        EXPECT_EQ(status["last_event_field"], "hook_event_name");
+        EXPECT_EQ(status["last_error"], "");
     }
 
     // 6. 测试发送兼容字段 event (工具调用启动)

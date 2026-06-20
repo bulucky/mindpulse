@@ -201,6 +201,31 @@ TEST(StateMachineTest, SessionStartAlwaysEntersIdle) {
     EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
 }
 
+// 验证会话活跃兜底事件只从 STOPPED 拉起 IDLE，不打断运行中或等待中状态
+TEST(StateMachineTest, SessionActiveFallbackDoesNotInterruptActiveStates) {
+    StateMachine sm;
+
+    sm.handle_event("claude", StateMachineEvent::SESSION_ACTIVE);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+
+    sm.handle_event("claude", StateMachineEvent::USER_PROMPT_SUBMIT);
+    sm.handle_event("claude", StateMachineEvent::TOOL_START);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 1);
+
+    sm.handle_event("claude", StateMachineEvent::SESSION_ACTIVE);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 1);
+
+    sm.handle_event("claude", StateMachineEvent::PERMISSION_REQUEST);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+
+    sm.handle_event("claude", StateMachineEvent::SESSION_ACTIVE);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 1);
+}
+
 // 验证多工具状态的聚合优先级决策 (PENDING > RUNNING > IDLE > STOPPED)
 TEST(StateMachineTest, MultiToolAggregation) {
     StateMachine sm;

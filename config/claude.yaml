@@ -6,7 +6,7 @@ claude:
     SessionStart: "SESSION_START"           # 会话启动或恢复
     Setup: "SESSION_START"                  # --init 或 --maintenance 启动环境准备
     SessionEnd: "SESSION_END"               # 会话退出/结束
-    InstructionsLoaded: "NOOP"              # CLAUDE.md 或规则文件加载；不等同会话启动
+    InstructionsLoaded: "SESSION_ACTIVE"    # CLAUDE.md 或规则文件加载；可作为 SessionStart 未触发时的会话活跃兜底
     ConfigChange: "NOOP"                    # 会话中配置文件变动；不重置工具计数
 
     # 2. 用户交互与输入

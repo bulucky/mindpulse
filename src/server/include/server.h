@@ -9,6 +9,8 @@
 #include <memory>
 #include <thread>
 #include <atomic>
+#include <mutex>
+#include <unordered_map>
 #include <httplib.h>
 
 class ConfigManager;
@@ -51,6 +53,13 @@ public:
     [[nodiscard]] bool is_running() const;
 
 private:
+    struct HookDiagnostics {
+        int received_event_count = 0;
+        std::string last_raw_event;
+        std::string last_event_field;
+        std::string last_error;
+    };
+
     /**
      * @brief 线程体，在 worker 线程中调用 blocking 的 listen 接口
      */
@@ -65,4 +74,7 @@ private:
     httplib::Server svr_;                        ///< cpp-httplib 服务实例
     std::unique_ptr<std::thread> worker_thread_; ///< 工作线程指针
     std::atomic<bool> is_running_{false};        ///< 标识服务器是否正在运行
+
+    mutable std::mutex diagnostics_mutex_;       ///< Hook 诊断信息互斥锁
+    std::unordered_map<std::string, HookDiagnostics> diagnostics_; ///< 每个工具的 Hook 收包诊断
 };

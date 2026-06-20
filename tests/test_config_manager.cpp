@@ -26,6 +26,7 @@ TEST(ConfigManagerTest, ParseAndCacheBuffer) {
 
         // get_event_mapping 内部检测到没加载，会自动调用生成机制并载入
         EXPECT_EQ(manager.get_event_mapping("claude", "SessionStart"), StateMachineEvent::SESSION_START);
+        EXPECT_EQ(manager.get_event_mapping("claude", "InstructionsLoaded"), StateMachineEvent::SESSION_ACTIVE);
         EXPECT_EQ(manager.get_event_mapping("claude", "Elicitation"), StateMachineEvent::PERMISSION_REQUEST);
         EXPECT_EQ(manager.get_event_mapping("claude", "ElicitationResult"), StateMachineEvent::AGENT_RUNNING);
         EXPECT_EQ(manager.get_event_mapping("claude", "PostToolUse"), StateMachineEvent::TOOL_END);

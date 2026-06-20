@@ -12,6 +12,7 @@
  */
 enum class StateMachineEvent {
     SESSION_START,       ///< 会话启动 (对应 SessionStart 等)
+    SESSION_ACTIVE,      ///< 会话已活跃但不重置运行中/等待中状态
     SESSION_END,         ///< 会话结束 (对应 SessionEnd 等)
     USER_PROMPT_SUBMIT,  ///< 用户提交 Prompt (对应 UserPromptSubmit 等)
     AGENT_RUNNING,       ///< Agent 活动中但不改变工具嵌套计数
@@ -31,6 +32,7 @@ enum class StateMachineEvent {
  */
 inline StateMachineEvent parse_event_string(const std::string& str) {
     if (str == "SESSION_START")       return StateMachineEvent::SESSION_START;
+    if (str == "SESSION_ACTIVE")      return StateMachineEvent::SESSION_ACTIVE;
     if (str == "SESSION_END")         return StateMachineEvent::SESSION_END;
     if (str == "USER_PROMPT_SUBMIT")  return StateMachineEvent::USER_PROMPT_SUBMIT;
     if (str == "AGENT_RUNNING")       return StateMachineEvent::AGENT_RUNNING;

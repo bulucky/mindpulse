@@ -29,6 +29,8 @@ static const char* event_to_string(StateMachineEvent event) {
     switch (event) {
         case StateMachineEvent::SESSION_START:
             return "SESSION_START";
+        case StateMachineEvent::SESSION_ACTIVE:
+            return "SESSION_ACTIVE";
         case StateMachineEvent::SESSION_END:
             return "SESSION_END";
         case StateMachineEvent::USER_PROMPT_SUBMIT:
@@ -66,6 +68,11 @@ HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
             body = nlohmann::json::parse(req.body);
         } catch (const std::exception& e) {
             std::printf("[HttpServer] 解析 JSON 载荷失败 (来自工具: '%s'): %s\n", tool_id.c_str(), e.what());
+            {
+                std::lock_guard<std::mutex> lock(diagnostics_mutex_);
+                HookDiagnostics& diagnostics = diagnostics_[tool_id];
+                diagnostics.last_error = "Invalid JSON body";
+            }
             res.status = 400;
             res.set_content("Invalid JSON body", "text/plain");
             return;
@@ -82,12 +89,25 @@ HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
 
         if (event_field == nullptr) {
             std::printf("[HttpServer] 缺少必需的 'hook_event_name' 字符串字段 (来自工具: '%s')\n", tool_id.c_str());
+            {
+                std::lock_guard<std::mutex> lock(diagnostics_mutex_);
+                HookDiagnostics& diagnostics = diagnostics_[tool_id];
+                diagnostics.last_error = "Missing hook_event_name";
+            }
             res.status = 400;
             res.set_content("Missing or invalid 'hook_event_name' parameter", "text/plain");
             return;
         }
 
         std::string raw_event = body[event_field].get<std::string>();
+        {
+            std::lock_guard<std::mutex> lock(diagnostics_mutex_);
+            HookDiagnostics& diagnostics = diagnostics_[tool_id];
+            diagnostics.received_event_count++;
+            diagnostics.last_raw_event = raw_event;
+            diagnostics.last_event_field = event_field;
+            diagnostics.last_error.clear();
+        }
 
         // 3. 通过 ConfigManager 将原始 Hook 事件转换为标准化状态机事件
         StateMachineEvent mapped_event = config_mgr_.get_event_mapping(tool_id, raw_event);
@@ -117,6 +137,21 @@ HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
             {"active_tool_count", state_machine_.get_tool_active_count(tool_id)},
             {"last_event", event_to_string(last_event)},
             {"aggregate_state", breath_state_to_string(state_machine_.get_aggregate_state())}};
+        {
+            std::lock_guard<std::mutex> lock(diagnostics_mutex_);
+            auto it = diagnostics_.find(tool_id);
+            if (it != diagnostics_.end()) {
+                body["received_event_count"] = it->second.received_event_count;
+                body["last_raw_event"] = it->second.last_raw_event;
+                body["last_event_field"] = it->second.last_event_field;
+                body["last_error"] = it->second.last_error;
+            } else {
+                body["received_event_count"] = 0;
+                body["last_raw_event"] = "";
+                body["last_event_field"] = "";
+                body["last_error"] = "";
+            }
+        }
 
         res.status = 200;
         res.set_content(body.dump(), "application/json");

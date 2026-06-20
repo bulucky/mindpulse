@@ -122,7 +122,7 @@ void ConfigManager::write_default_config_if_missing(const std::string& tool_id) 
             << "    SessionStart: \"SESSION_START\"\n"
             << "    Setup: \"SESSION_START\"\n"
             << "    SessionEnd: \"SESSION_END\"\n"
-            << "    InstructionsLoaded: \"NOOP\"\n"
+            << "    InstructionsLoaded: \"SESSION_ACTIVE\"\n"
             << "    ConfigChange: \"NOOP\"\n\n"
             << "    # 2. 用户交互与输入\n"
             << "    UserPromptSubmit: \"USER_PROMPT_SUBMIT\"\n"
