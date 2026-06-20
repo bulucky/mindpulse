@@ -14,6 +14,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ui
     core
+    server
     yaml-cpp
     httplib::httplib
     nlohmann_json::nlohmann_json
@@ -30,5 +31,6 @@ if(MINGW)
     )
 endif()
 
-add_subdirectory(core)
 add_subdirectory(ui)
+add_subdirectory(core)
+add_subdirectory(server)

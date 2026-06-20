@@ -5,7 +5,7 @@
 
 #include "state_machine.h"
 #include <cstdio>
-#include <algorithm>
+// #include <algorithm>
 
 /**
  * @brief 辅助函数：状态枚举转换为易读的字符串，便于日志输出
@@ -52,6 +52,7 @@ static const char* event_to_string(StateMachineEvent event) {
 }
 
 ToolStateContext& StateMachine::get_or_create_context(const std::string& tool_id) {
+    // 假设调用此私有方法前已经锁定了 mutex_
     auto it = tools_.find(tool_id);
     if (it == tools_.end()) {
         ToolStateContext ctx;
@@ -62,12 +63,12 @@ ToolStateContext& StateMachine::get_or_create_context(const std::string& tool_id
 }
 
 BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineEvent event) {
+    std::lock_guard<std::mutex> lock(mutex_);
     ToolStateContext& ctx = get_or_create_context(tool_id);
     BreathState old_state = ctx.state;
 
     switch (event) {
         case StateMachineEvent::SESSION_START:
-            // 只要收到 session_start，就保证会话不再是 STOPPED，如果本就是活跃状态则保留
             if (ctx.state == BreathState::STOPPED) {
                 ctx.state = BreathState::IDLE;
             }
@@ -93,7 +94,6 @@ BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineE
                 ctx.active_tool_count--;
             }
             if (ctx.active_tool_count == 0) {
-                // 如果当前在 RUNNING 且所有工具执行完毕，退回 IDLE
                 if (ctx.state == BreathState::RUNNING) {
                     ctx.state = BreathState::IDLE;
                 }
@@ -109,7 +109,6 @@ BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineE
             break;
 
         case StateMachineEvent::AGENT_STOP:
-            // 正常结束当前回合，强制重置计数并回归 IDLE
             ctx.state = BreathState::IDLE;
             ctx.active_tool_count = 0;
             break;
@@ -128,15 +127,21 @@ BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineE
                     ctx.active_tool_count);
     }
 
-    return get_aggregate_state();
+    return get_aggregate_state_unlocked();
 }
 
 BreathState StateMachine::tick(double delta_time_sec) {
-    (void)delta_time_sec; // 目前 PENDING 一直阻塞无需超时降级，保留参数接口用于潜在扩展
-    return get_aggregate_state();
+    (void)delta_time_sec;
+    std::lock_guard<std::mutex> lock(mutex_);
+    return get_aggregate_state_unlocked();
 }
 
 BreathState StateMachine::get_aggregate_state() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return get_aggregate_state_unlocked();
+}
+
+BreathState StateMachine::get_aggregate_state_unlocked() const {
     if (tools_.empty()) {
         return BreathState::STOPPED;
     }
@@ -155,7 +160,6 @@ BreathState StateMachine::get_aggregate_state() const {
         }
     }
 
-    // 优先显示：PENDING > RUNNING > IDLE > STOPPED
     if (has_pending) return BreathState::PENDING;
     if (has_running) return BreathState::RUNNING;
     if (has_idle) return BreathState::IDLE;
@@ -163,6 +167,7 @@ BreathState StateMachine::get_aggregate_state() const {
 }
 
 BreathState StateMachine::get_tool_state(const std::string& tool_id) const {
+    std::lock_guard<std::mutex> lock(mutex_);
     auto it = tools_.find(tool_id);
     if (it != tools_.end()) {
         return it->second.state;
@@ -171,6 +176,7 @@ BreathState StateMachine::get_tool_state(const std::string& tool_id) const {
 }
 
 int StateMachine::get_tool_active_count(const std::string& tool_id) const {
+    std::lock_guard<std::mutex> lock(mutex_);
     auto it = tools_.find(tool_id);
     if (it != tools_.end()) {
         return it->second.active_tool_count;
@@ -179,5 +185,6 @@ int StateMachine::get_tool_active_count(const std::string& tool_id) const {
 }
 
 void StateMachine::reset() {
+    std::lock_guard<std::mutex> lock(mutex_);
     tools_.clear();
 }

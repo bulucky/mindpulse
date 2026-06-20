@@ -7,6 +7,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <mutex>
 #include "breath_engine.h" // 复用 BreathState
 #include "yaml_parser.h"   // 复用 StateMachineEvent
 
@@ -72,5 +73,13 @@ private:
      */
     ToolStateContext& get_or_create_context(const std::string& tool_id);
 
+    /**
+     * @brief 辅助方法：无锁获取全局聚合状态（用于类内部调用）
+     */
+    [[nodiscard]] BreathState get_aggregate_state_unlocked() const;
+
     std::unordered_map<std::string, ToolStateContext> tools_; ///< 所有被追踪的工具集合
+    mutable std::mutex mutex_;                                ///< 线程同步互斥锁
+
 };
+
