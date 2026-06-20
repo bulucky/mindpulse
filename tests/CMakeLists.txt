@@ -25,6 +25,7 @@ target_include_directories(mindpulse_tests PRIVATE
 target_link_libraries(mindpulse_tests PRIVATE
     gtest
     gtest_main
+    yaml-cpp
 )
 
 include(GoogleTest)

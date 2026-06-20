@@ -20,6 +20,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+    yaml-cpp
     httplib::httplib
     nlohmann_json::nlohmann_json
 )

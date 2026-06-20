@@ -27,35 +27,22 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
+    yaml-cpp
+    GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+    GIT_TAG        yaml-cpp-0.9.0
+    GIT_SHALLOW    TRUE
+)
+
+FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_TAG v1.17.x
 )
 
-FetchContent_MakeAvailable(httplib json googletest)
+FetchContent_MakeAvailable(httplib json googletest yaml-cpp)
 enable_testing()
 
-# add_executable(${PROJECT_NAME} src/main.cpp)
-
-# target_include_directories(${PROJECT_NAME} PRIVATE
-#     ${CMAKE_CURRENT_SOURCE_DIR}/src
-# )
-
-# target_link_libraries(${PROJECT_NAME} PRIVATE
-#     httplib::httplib
-#     nlohmann_json::nlohmann_json
-# )
 
 add_subdirectory(src)
 add_subdirectory(tests)
 
-# if(WIN32)
-#     add_compile_definitions(_WIN32_WINNT=0x0A00)
-#     target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32)
-# endif()
-
-# if(MINGW)
-#     target_link_options(${PROJECT_NAME} PRIVATE
-#         -static-libgcc -static-libstdc++ -static
-#     )
-# endif()
