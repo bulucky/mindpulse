@@ -5,6 +5,7 @@ set(GTEST_SOURCES
     test_tray_integration.cpp
     test_breath_engine_test.cpp
     test_icon_renderer_test.cpp
+    test_server.cpp
 )
 
 add_executable(mindpulse_tests

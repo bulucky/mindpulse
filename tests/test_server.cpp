@@ -32,6 +32,9 @@ TEST(HttpServerTest, DispatchEventsToStateMachine) {
     ASSERT_TRUE(server.start("127.0.0.1", 19876));
     EXPECT_TRUE(server.is_running());
 
+    // 等待后台线程完成 Socket 绑定
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
     // 创建 HTTP 客户端
     httplib::Client client("127.0.0.1", 19876);
     client.set_connection_timeout(0, 500000); // 500ms 超时

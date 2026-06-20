@@ -1,9 +1,8 @@
 set(MAIN_SOURCES
     main.cpp
-    ${PLATFORM_UI_SOURCES}
 )
 
-add_executable(${PROJECT_NAME}
+add_executable(${PROJECT_NAME} WIN32
     ${MAIN_SOURCES}
 )
 

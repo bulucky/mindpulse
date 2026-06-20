@@ -1,0 +1,9 @@
+codex:
+  name: "codex"
+  events:
+    session_start: "SESSION_START"
+    session_end: "SESSION_END"
+    tool_start: "TOOL_START"
+    tool_end: "TOOL_END"
+    user_input: "PERMISSION_REQUEST"
+    agent_stop: "AGENT_STOP"
