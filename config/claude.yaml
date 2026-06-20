@@ -6,8 +6,8 @@ claude:
     SessionStart: "SESSION_START"           # 会话启动或恢复
     Setup: "SESSION_START"                  # --init 或 --maintenance 启动环境准备
     SessionEnd: "SESSION_END"               # 会话退出/结束
-    InstructionsLoaded: "SESSION_START"     # CLAUDE.md 或规则文件加载
-    ConfigChange: "SESSION_START"           # 会话中配置文件发生变动
+    InstructionsLoaded: "NOOP"              # CLAUDE.md 或规则文件加载；不等同会话启动
+    ConfigChange: "NOOP"                    # 会话中配置文件变动；不重置工具计数
 
     # 2. 用户交互与输入
     UserPromptSubmit: "USER_PROMPT_SUBMIT"   # 用户提交了提示词，Claude 开始思考
@@ -17,18 +17,18 @@ claude:
     PreToolUse: "TOOL_START"                # 工具调用执行前 (active_tool_count++)
     PostToolUse: "TOOL_END"                 # 工具调用成功完成 (active_tool_count--)
     PostToolUseFailure: "TOOL_END"          # 工具调用失败 (active_tool_count--)
-    PostToolBatch: "TOOL_END"               # 一批并行工具全部执行完成
+    PostToolBatch: "AGENT_RUNNING"          # 一批并行工具全部完成，准备进入下一次模型调用
 
     # 4. 授权与人工确认 (关键 PENDING 状态)
     PermissionRequest: "PERMISSION_REQUEST" # 弹出权限请求弹窗，正在等待用户输入 y/N (PENDING)
-    PermissionDenied: "PERMISSION_DENIED"   # 权限请求被拒绝，Claude 重新接收控制返回思考 (RUNNING)
+    PermissionDenied: "PERMISSION_DENIED"   # auto mode 分类器拒绝工具调用，Claude 重新接收控制返回思考
     Elicitation: "PERMISSION_REQUEST"       # MCP 服务器执行工具中途需要请求用户输入 (PENDING)
-    ElicitationResult: "TOOL_START"         # 用户已回复 MCP 输入，Claude 恢复工具处理 (RUNNING)
+    ElicitationResult: "AGENT_RUNNING"      # 用户已回复 MCP 输入，Claude 恢复工具处理
 
     # 5. 回合结束与停止信号
     Stop: "AGENT_STOP"                      # 正常完成本轮所有响应 (IDLE)
     StopFailure: "AGENT_STOP"               # 本轮响应因 API 错误异常中断终止 (IDLE)
-    TeammateIdle: "TOOL_END"                # Agent 队友即将进入空闲挂起状态
+    TeammateIdle: "NOOP"                    # Agent 队友即将进入空闲挂起状态
 
     # 6. 子任务与并发子代理
     SubagentStart: "TOOL_START"             # 生成并启动子代理 (active_tool_count++)
@@ -37,15 +37,15 @@ claude:
     TaskCompleted: "TOOL_END"               # 标记任务已完成 (active_tool_count--)
 
     # 7. 环境与磁盘事件
-    CwdChanged: "TOOL_START"                # 工作目录改变 (例如 Claude 执行了 cd)
-    FileChanged: "TOOL_START"               # 被监视的磁盘文件发生变化
-    WorktreeCreate: "TOOL_START"            # 检出并创建 Git 工作区
-    WorktreeRemove: "TOOL_END"              # 卸载或移除 Git 工作区
+    CwdChanged: "NOOP"                      # 工作目录改变；独立异步事件
+    FileChanged: "NOOP"                     # 被监视的磁盘文件发生变化；独立异步事件
+    WorktreeCreate: "NOOP"                  # Git 工作区创建；可能跨整个会话存在
+    WorktreeRemove: "NOOP"                  # Git 工作区移除
 
     # 8. 性能与底层调整事件 (通常短瞬)
-    PreCompact: "TOOL_START"                # 上下文压缩前
-    PostCompact: "TOOL_END"                 # 上下文压缩完成
+    PreCompact: "AGENT_RUNNING"             # 上下文压缩前
+    PostCompact: "AGENT_RUNNING"            # 上下文压缩完成
 
     # 9. 辅助与消息展示类事件
-    Notification: "TOOL_START"              # 产生桌面系统通知
-    MessageDisplay: "TOOL_START"            # 正在输出/打字展示 Assistant 消息内容
+    Notification: "NOOP"                    # 产生桌面系统通知；类型混杂，不直接改变状态
+    MessageDisplay: "AGENT_RUNNING"         # 正在输出/打字展示 Assistant 消息内容

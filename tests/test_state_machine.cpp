@@ -105,6 +105,38 @@ TEST(StateMachineTest, PendingBlockingAndRecovery) {
     EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
 }
 
+// 验证权限等待后收到工具结束事件时可以离开 PENDING，避免指示灯卡死
+TEST(StateMachineTest, PendingClearsOnToolEnd) {
+    StateMachine sm;
+    sm.handle_event("claude", StateMachineEvent::SESSION_START);
+    sm.handle_event("claude", StateMachineEvent::TOOL_START);
+    sm.handle_event("claude", StateMachineEvent::PERMISSION_REQUEST);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 1);
+
+    sm.handle_event("claude", StateMachineEvent::TOOL_END);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+}
+
+// 验证无配对事件不会增加嵌套计数，活动信号只改变状态
+TEST(StateMachineTest, NonCountingEventsDoNotLeakActiveCount) {
+    StateMachine sm;
+    sm.handle_event("claude", StateMachineEvent::SESSION_START);
+
+    sm.handle_event("claude", StateMachineEvent::NOOP);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+
+    sm.handle_event("claude", StateMachineEvent::AGENT_RUNNING);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+
+    sm.handle_event("claude", StateMachineEvent::AGENT_STOP);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+}
+
 // 验证多工具状态的聚合优先级决策 (PENDING > RUNNING > IDLE > STOPPED)
 TEST(StateMachineTest, MultiToolAggregation) {
     StateMachine sm;

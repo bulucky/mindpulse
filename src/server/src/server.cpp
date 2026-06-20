@@ -29,15 +29,23 @@ HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
             return;
         }
 
-        // 2. 检查必需字段 event
-        if (!body.contains("event") || !body["event"].is_string()) {
-            std::printf("[HttpServer] 缺少必需的 'event' 字符串字段 (来自工具: '%s')\n", tool_id.c_str());
+        // 2. 检查必需字段。Claude Code 官方 HTTP hook 使用 hook_event_name；
+        // event 保留为手工测试和旧配置兼容字段。
+        const char* event_field = nullptr;
+        if (body.contains("hook_event_name") && body["hook_event_name"].is_string()) {
+            event_field = "hook_event_name";
+        } else if (body.contains("event") && body["event"].is_string()) {
+            event_field = "event";
+        }
+
+        if (event_field == nullptr) {
+            std::printf("[HttpServer] 缺少必需的 'hook_event_name' 字符串字段 (来自工具: '%s')\n", tool_id.c_str());
             res.status = 400;
-            res.set_content("Missing or invalid 'event' parameter", "text/plain");
+            res.set_content("Missing or invalid 'hook_event_name' parameter", "text/plain");
             return;
         }
 
-        std::string raw_event = body["event"].get<std::string>();
+        std::string raw_event = body[event_field].get<std::string>();
 
         // 3. 通过 ConfigManager 将原始 Hook 事件转换为标准化状态机事件
         StateMachineEvent mapped_event = config_mgr_.get_event_mapping(tool_id, raw_event);

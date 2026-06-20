@@ -54,9 +54,9 @@ TEST(HttpServerTest, DispatchEventsToStateMachine) {
         EXPECT_EQ(res->status, 400);
     }
 
-    // 5. 测试发送 SessionStart
+    // 5. 测试发送官方 HTTP hook 字段 hook_event_name
     {
-        nlohmann::json body = {{"event", "SessionStart"}};
+        nlohmann::json body = {{"hook_event_name", "SessionStart"}};
         auto res = client.Post("/hook/claude", body.dump(), "application/json");
         ASSERT_NE(res, nullptr);
         EXPECT_EQ(res->status, 200);
@@ -67,7 +67,7 @@ TEST(HttpServerTest, DispatchEventsToStateMachine) {
         EXPECT_EQ(state_machine.get_aggregate_state(), BreathState::IDLE);
     }
 
-    // 6. 测试发送 PreToolUse (工具调用启动)
+    // 6. 测试发送兼容字段 event (工具调用启动)
     {
         nlohmann::json body = {{"event", "PreToolUse"}};
         auto res = client.Post("/hook/claude", body.dump(), "application/json");

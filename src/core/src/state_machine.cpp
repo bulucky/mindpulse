@@ -35,6 +35,8 @@ static const char* event_to_string(StateMachineEvent event) {
             return "SESSION_END";
         case StateMachineEvent::USER_PROMPT_SUBMIT:
             return "USER_PROMPT_SUBMIT";
+        case StateMachineEvent::AGENT_RUNNING:
+            return "AGENT_RUNNING";
         case StateMachineEvent::TOOL_START:
             return "TOOL_START";
         case StateMachineEvent::TOOL_END:
@@ -45,6 +47,8 @@ static const char* event_to_string(StateMachineEvent event) {
             return "PERMISSION_DENIED";
         case StateMachineEvent::AGENT_STOP:
             return "AGENT_STOP";
+        case StateMachineEvent::NOOP:
+            return "NOOP";
         case StateMachineEvent::UNKNOWN:
             return "UNKNOWN";
     }
@@ -84,6 +88,12 @@ BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineE
             ctx.state = BreathState::RUNNING;
             break;
 
+        case StateMachineEvent::AGENT_RUNNING:
+            if (ctx.state != BreathState::STOPPED) {
+                ctx.state = BreathState::RUNNING;
+            }
+            break;
+
         case StateMachineEvent::TOOL_START:
             ctx.state = BreathState::RUNNING;
             ctx.active_tool_count++;
@@ -94,7 +104,7 @@ BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineE
                 ctx.active_tool_count--;
             }
             if (ctx.active_tool_count == 0) {
-                if (ctx.state == BreathState::RUNNING) {
+                if (ctx.state == BreathState::RUNNING || ctx.state == BreathState::PENDING) {
                     ctx.state = BreathState::IDLE;
                 }
             }
@@ -111,6 +121,9 @@ BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineE
         case StateMachineEvent::AGENT_STOP:
             ctx.state = BreathState::IDLE;
             ctx.active_tool_count = 0;
+            break;
+
+        case StateMachineEvent::NOOP:
             break;
 
         case StateMachineEvent::UNKNOWN:
