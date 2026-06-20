@@ -70,31 +70,39 @@ BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineE
     std::lock_guard<std::mutex> lock(mutex_);
     ToolStateContext& ctx = get_or_create_context(tool_id);
     BreathState old_state = ctx.state;
+    ctx.last_event = event;
 
     switch (event) {
         case StateMachineEvent::SESSION_START:
-            if (ctx.state == BreathState::STOPPED) {
-                ctx.state = BreathState::IDLE;
-            }
+            ctx.session_active = true;
+            ctx.turn_active = false;
+            ctx.state = BreathState::IDLE;
             ctx.active_tool_count = 0;
             break;
 
         case StateMachineEvent::SESSION_END:
+            ctx.session_active = false;
+            ctx.turn_active = false;
             ctx.state = BreathState::STOPPED;
             ctx.active_tool_count = 0;
             break;
 
         case StateMachineEvent::USER_PROMPT_SUBMIT:
+            ctx.session_active = true;
+            ctx.turn_active = true;
             ctx.state = BreathState::RUNNING;
             break;
 
         case StateMachineEvent::AGENT_RUNNING:
-            if (ctx.state != BreathState::STOPPED && ctx.state != BreathState::PENDING) {
+            if (ctx.state != BreathState::PENDING) {
+                ctx.session_active = true;
                 ctx.state = BreathState::RUNNING;
             }
             break;
 
         case StateMachineEvent::TOOL_START:
+            ctx.session_active = true;
+            ctx.turn_active = true;
             ctx.state = BreathState::RUNNING;
             ctx.active_tool_count++;
             break;
@@ -105,20 +113,25 @@ BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineE
             }
             if (ctx.active_tool_count == 0) {
                 if (ctx.state == BreathState::RUNNING || ctx.state == BreathState::PENDING) {
-                    ctx.state = BreathState::IDLE;
+                    ctx.state = ctx.turn_active ? BreathState::RUNNING : BreathState::IDLE;
                 }
             }
             break;
 
         case StateMachineEvent::PERMISSION_REQUEST:
+            ctx.session_active = true;
             ctx.state = BreathState::PENDING;
             break;
 
         case StateMachineEvent::PERMISSION_DENIED:
+            ctx.session_active = true;
+            ctx.turn_active = true;
             ctx.state = BreathState::RUNNING;
             break;
 
         case StateMachineEvent::AGENT_STOP:
+            ctx.session_active = true;
+            ctx.turn_active = false;
             ctx.state = BreathState::IDLE;
             ctx.active_tool_count = 0;
             break;
@@ -195,6 +208,15 @@ int StateMachine::get_tool_active_count(const std::string& tool_id) const {
         return it->second.active_tool_count;
     }
     return 0;
+}
+
+StateMachineEvent StateMachine::get_tool_last_event(const std::string& tool_id) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = tools_.find(tool_id);
+    if (it != tools_.end()) {
+        return it->second.last_event;
+    }
+    return StateMachineEvent::UNKNOWN;
 }
 
 void StateMachine::reset() {

@@ -66,6 +66,15 @@ TEST(HttpServerTest, DispatchEventsToStateMachine) {
         // 检验状态机联动：SessionStart -> IDLE
         EXPECT_EQ(state_machine.get_tool_state("claude"), BreathState::IDLE);
         EXPECT_EQ(state_machine.get_aggregate_state(), BreathState::IDLE);
+
+        auto status_res = client.Get("/status/claude");
+        ASSERT_NE(status_res, nullptr);
+        EXPECT_EQ(status_res->status, 200);
+        auto status = nlohmann::json::parse(status_res->body);
+        EXPECT_EQ(status["state"], "IDLE");
+        EXPECT_EQ(status["aggregate_state"], "IDLE");
+        EXPECT_EQ(status["active_tool_count"], 0);
+        EXPECT_EQ(status["last_event"], "SESSION_START");
     }
 
     // 6. 测试发送兼容字段 event (工具调用启动)

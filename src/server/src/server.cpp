@@ -11,6 +11,48 @@
 #include "config_manager.h"
 #include "state_machine.h"
 
+static const char* breath_state_to_string(BreathState state) {
+    switch (state) {
+        case BreathState::STOPPED:
+            return "STOPPED";
+        case BreathState::IDLE:
+            return "IDLE";
+        case BreathState::RUNNING:
+            return "RUNNING";
+        case BreathState::PENDING:
+            return "PENDING";
+    }
+    return "UNKNOWN";
+}
+
+static const char* event_to_string(StateMachineEvent event) {
+    switch (event) {
+        case StateMachineEvent::SESSION_START:
+            return "SESSION_START";
+        case StateMachineEvent::SESSION_END:
+            return "SESSION_END";
+        case StateMachineEvent::USER_PROMPT_SUBMIT:
+            return "USER_PROMPT_SUBMIT";
+        case StateMachineEvent::AGENT_RUNNING:
+            return "AGENT_RUNNING";
+        case StateMachineEvent::TOOL_START:
+            return "TOOL_START";
+        case StateMachineEvent::TOOL_END:
+            return "TOOL_END";
+        case StateMachineEvent::PERMISSION_REQUEST:
+            return "PERMISSION_REQUEST";
+        case StateMachineEvent::PERMISSION_DENIED:
+            return "PERMISSION_DENIED";
+        case StateMachineEvent::AGENT_STOP:
+            return "AGENT_STOP";
+        case StateMachineEvent::NOOP:
+            return "NOOP";
+        case StateMachineEvent::UNKNOWN:
+            return "UNKNOWN";
+    }
+    return "UNKNOWN";
+}
+
 HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
     : config_mgr_(config_mgr), state_machine_(state_machine), port_(9876) {
 
@@ -62,6 +104,30 @@ HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
         // 5. Claude Code HTTP hooks 会解析非空响应体，成功时返回空 JSON 对象。
         res.status = 200;
         res.set_content("{}", "application/json");
+    });
+
+    svr_.Get(R"(/status/([a-zA-Z0-9_\-]+))", [this](const httplib::Request& req, httplib::Response& res) {
+        std::string tool_id = req.matches[1].str();
+        BreathState state = state_machine_.get_tool_state(tool_id);
+        StateMachineEvent last_event = state_machine_.get_tool_last_event(tool_id);
+
+        nlohmann::json body = {
+            {"tool_id", tool_id},
+            {"state", breath_state_to_string(state)},
+            {"active_tool_count", state_machine_.get_tool_active_count(tool_id)},
+            {"last_event", event_to_string(last_event)},
+            {"aggregate_state", breath_state_to_string(state_machine_.get_aggregate_state())}};
+
+        res.status = 200;
+        res.set_content(body.dump(), "application/json");
+    });
+
+    svr_.Get("/status", [this](const httplib::Request&, httplib::Response& res) {
+        nlohmann::json body = {
+            {"aggregate_state", breath_state_to_string(state_machine_.get_aggregate_state())}};
+
+        res.status = 200;
+        res.set_content(body.dump(), "application/json");
     });
 }
 
