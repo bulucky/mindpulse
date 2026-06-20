@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <cstdint>
-#include "core/breath_engine.h" // 复用 ColorRGB 结构体
+#include "breath_engine.h" // 复用 ColorRGB 结构体
 
 /**
  * @brief 图标渲染器类，通过多层高斯分布及极坐标计算生成三缺口黄金比例旋转圆环的 BGRA 像素矩阵

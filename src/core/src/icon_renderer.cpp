@@ -3,7 +3,7 @@
  * @brief 图标渲染器实现，支持高 DPI 尺寸缩放、三缺口黄金比例旋转圆环渲染
  */
 
-#include "core/icon_renderer.h"
+#include "icon_renderer.h"
 #include <cmath>
 #include <algorithm>
 

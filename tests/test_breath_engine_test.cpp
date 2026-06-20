@@ -4,14 +4,14 @@
  */
 
 #include <gtest/gtest.h>
-#include "core/breath_engine.h"
+#include "breath_engine.h"
 
 // 验证初始状态为 STOPPED 且亮度与新颜色 (#792740) 正确
 TEST(BreathEngineTest, InitialStateStopped) {
     BreathEngine engine;
     EXPECT_EQ(engine.get_current_state(), BreathState::STOPPED);
     EXPECT_NEAR(engine.get_current_brightness(), 0.15, 0.001);
-    
+
     ColorRGB color = engine.get_current_color();
     EXPECT_DOUBLE_EQ(color.r, 121.0);
     EXPECT_DOUBLE_EQ(color.g, 39.0);
@@ -22,7 +22,7 @@ TEST(BreathEngineTest, InitialStateStopped) {
 TEST(BreathEngineTest, TransitionDurationAndState) {
     BreathEngine engine;
     engine.transition_to(BreathState::IDLE);
-    
+
     EXPECT_TRUE(engine.is_in_transition());
     EXPECT_EQ(engine.get_current_state(), BreathState::IDLE);
 
@@ -38,7 +38,7 @@ TEST(BreathEngineTest, TransitionDurationAndState) {
 // 验证 IDLE 模式下 4.0s 呼吸周期的关键点亮度
 TEST(BreathEngineTest, IdleBreathingCurvePoints) {
     BreathEngine engine;
-    
+
     // 切换到 IDLE 状态，并通过 tick 0.5s 结束过渡期
     engine.transition_to(BreathState::IDLE);
     engine.tick(0.5); // 此时 state_time_ 为 0.5s
@@ -69,7 +69,7 @@ TEST(BreathEngineTest, TransitionSmoothness) {
     for (int i = 0; i < 5; ++i) {
         engine.tick(0.05); // 每帧 50ms
         double curr_brightness = engine.get_current_brightness();
-        
+
         EXPECT_NEAR(curr_brightness - prev_brightness, (1.0 - 0.15) * 0.1, 0.15);
         prev_brightness = curr_brightness;
     }

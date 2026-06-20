@@ -7,7 +7,7 @@
 
 #ifdef _WIN32
 
-#include "ui/tray.h"
+#include "tray.h"
 #include <windows.h>
 #include <shellapi.h>
 #include <vector>
@@ -55,12 +55,12 @@ private:
      */
     HICON create_hicon_from_bgra(const std::vector<uint8_t>& bgra_buffer, int width, int height);
 
-    HWND hwnd_;                       ///< 隐藏辅助窗口的句柄
-    NOTIFYICONDATAA nid_;             ///< Windows 托盘图标数据结构
-    HICON current_hicon_;             ///< 当前显示的图标句柄
-    std::vector<TrayMenuItem> menu_items_; ///< 绑定的右键菜单项
+    HWND hwnd_;                                                      ///< 隐藏辅助窗口的句柄
+    NOTIFYICONDATAA nid_;                                            ///< Windows 托盘图标数据结构
+    HICON current_hicon_;                                            ///< 当前显示的图标句柄
+    std::vector<TrayMenuItem> menu_items_;                           ///< 绑定的右键菜单项
 
-    static const UINT WM_TRAYICON = WM_USER + 1; ///< 托盘回调自定义消息
+    static const UINT WM_TRAYICON = WM_USER + 1;                     ///< 托盘回调自定义消息
     static constexpr const char* CLASS_NAME = "MindPulseTrayWindow"; ///< 隐藏窗口的类名
 };
 

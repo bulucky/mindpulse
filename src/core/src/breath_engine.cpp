@@ -3,7 +3,7 @@
  * @brief 呼适应擎实现，包含曲线计算和插值过渡
  */
 
-#include "core/breath_engine.h"
+#include "breath_engine.h"
 #include <cmath>
 // #include <algorithm>
 

@@ -4,7 +4,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "core/icon_renderer.h"
+#include "icon_renderer.h"
 
 // 验证渲染输出的缓冲区大小与规格
 TEST(IconRendererTest, RenderBufferSizeAndResize) {
@@ -43,7 +43,7 @@ TEST(IconRendererTest, RingAlphaDistribution) {
 
     // 1. 中心点 (16,16) 处于圆环内侧空心区：其 Alpha 应当较低
     int center_alpha = buffer[4 * (16 * 32 + 16) + 3];
-    
+
     // 2. 在半径 R=9.5 处（例如 x=16, y=25，距离中心 9 像素）：应当处于实心环上，Alpha 明显更高
     int ring_pixel_alpha = buffer[4 * (25 * 32 + 16) + 3];
 

@@ -8,7 +8,7 @@
 #include <string>
 #include <filesystem>
 #include <unordered_map>
-#include "core/yaml_parser.h"
+#include "yaml_parser.h"
 
 /**
  * @brief 存储单个工具的缓存结构体，保存了文件最后修改时间以及已建立的映射表

@@ -4,9 +4,9 @@
  */
 
 #include <gtest/gtest.h>
-#include "core/breath_engine.h"
-#include "core/icon_renderer.h"
-#include "ui/tray.h"
+#include "breath_engine.h"
+#include "icon_renderer.h"
+#include "tray.h"
 #include <chrono>
 #include <thread>
 #include <string>

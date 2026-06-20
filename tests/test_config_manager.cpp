@@ -4,7 +4,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "core/config_manager.h"
+#include "config_manager.h"
 #include <fstream>
 #include <filesystem>
 #include <thread>

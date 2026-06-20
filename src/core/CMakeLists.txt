@@ -1,17 +1,12 @@
-# set(CORE_SOURCES
-#     breath_engine.cpp
-#     icon_renderer.cpp
-# )
+set(CORE_SOURCES
+    src/breath_engine.cpp
+    src/icon_renderer.cpp
+    src/config_manager.cpp
+)
 
-# add_executable(mindpulse_tests
-#     ${CORE_SOURCES}
-# )
+add_library(core STATIC ${CORE_SOURCES})
 
-# target_include_directories(mindpulse_tests PRIVATE
-#     ${CMAKE_SOURCE_DIR}/src
-# )
+target_include_directories(core PUBLIC include)
 
-# target_link_libraries(mindpulse_tests PRIVATE
-#     gtest
-#     gtest_main
-# )
+target_link_libraries(core PRIVATE yaml-cpp)
+

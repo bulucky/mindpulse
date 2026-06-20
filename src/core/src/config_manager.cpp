@@ -3,7 +3,7 @@
  * @brief 配置管理器实现，使用 yaml-cpp 进行文件解析并提供高效缓存更新逻辑
  */
 
-#include "core/config_manager.h"
+#include "config_manager.h"
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 // #include <iostream>
