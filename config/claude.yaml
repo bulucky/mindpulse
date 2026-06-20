@@ -2,50 +2,50 @@
 claude:
   name: "Claude Code"
   events:
-    # 1. 会话与启动生命周期
-    SessionStart: "SESSION_START"           # 会话启动或恢复
-    Setup: "SESSION_START"                  # --init 或 --maintenance 启动环境准备
-    SessionEnd: "SESSION_END"               # 会话退出/结束
-    InstructionsLoaded: "SESSION_ACTIVE"    # CLAUDE.md 或规则文件加载；可作为 SessionStart 未触发时的会话活跃兜底
-    ConfigChange: "NOOP"                    # 会话中配置文件变动；不重置工具计数
+    # 1. Session and startup lifecycle
+    SessionStart: "SESSION_START"           # Session starts or resumes
+    Setup: "SESSION_START"                  # Environment setup for --init or --maintenance
+    SessionEnd: "SESSION_END"               # Session exits or ends
+    InstructionsLoaded: "SESSION_ACTIVE"    # CLAUDE.md or rules loaded; fallback when SessionStart is missing
+    ConfigChange: "NOOP"                    # Config file changed during a session; keep tool counters unchanged
 
-    # 2. 用户交互与输入
-    UserPromptSubmit: "USER_PROMPT_SUBMIT"   # 用户提交了提示词，Claude 开始思考
-    UserPromptExpansion: "USER_PROMPT_SUBMIT" # 命令展开为提示词，准备发给 Claude
+    # 2. User interaction and input
+    UserPromptSubmit: "USER_PROMPT_SUBMIT"   # User submitted a prompt; Claude starts processing
+    UserPromptExpansion: "USER_PROMPT_SUBMIT" # Command expanded into a prompt for Claude
 
-    # 3. 工具调用声明周期 (包含嵌套计数驱动)
-    PreToolUse: "TOOL_START"                # 工具调用执行前 (active_tool_count++)
-    PostToolUse: "TOOL_END"                 # 工具调用成功完成 (active_tool_count--)
-    PostToolUseFailure: "TOOL_END"          # 工具调用失败 (active_tool_count--)
-    PostToolBatch: "AGENT_RUNNING"          # 一批并行工具全部完成，准备进入下一次模型调用
+    # 3. Tool invocation lifecycle (drives nested active tool count)
+    PreToolUse: "TOOL_START"                # Before a tool call (active_tool_count++)
+    PostToolUse: "TOOL_END"                 # Tool call completed successfully (active_tool_count--)
+    PostToolUseFailure: "TOOL_END"          # Tool call failed (active_tool_count--)
+    PostToolBatch: "AGENT_RUNNING"          # A parallel tool batch completed; the next model call is expected
 
-    # 4. 授权与人工确认 (关键 PENDING 状态)
-    PermissionRequest: "PERMISSION_REQUEST" # 弹出权限请求弹窗，正在等待用户输入 y/N (PENDING)
-    PermissionDenied: "PERMISSION_DENIED"   # auto mode 分类器拒绝工具调用，Claude 重新接收控制返回思考
-    Elicitation: "PERMISSION_REQUEST"       # MCP 服务器执行工具中途需要请求用户输入 (PENDING)
-    ElicitationResult: "AGENT_RUNNING"      # 用户已回复 MCP 输入，Claude 恢复工具处理
+    # 4. Permission and elicitation gates (PENDING state)
+    PermissionRequest: "PERMISSION_REQUEST" # Permission prompt is waiting for user approval (PENDING)
+    PermissionDenied: "PERMISSION_DENIED"   # Auto-mode classifier denied a tool call; Claude regains control
+    Elicitation: "PERMISSION_REQUEST"       # MCP server asks for user input during a tool call (PENDING)
+    ElicitationResult: "AGENT_RUNNING"      # User replied to MCP input; Claude resumes processing
 
-    # 5. 回合结束与停止信号
-    Stop: "AGENT_STOP"                      # 正常完成本轮所有响应 (IDLE)
-    StopFailure: "AGENT_STOP"               # 本轮响应因 API 错误异常中断终止 (IDLE)
-    TeammateIdle: "NOOP"                    # Agent 队友即将进入空闲挂起状态
+    # 5. Turn completion and stop signals
+    Stop: "AGENT_STOP"                      # Current response completed normally (IDLE)
+    StopFailure: "AGENT_STOP"               # Current response stopped after an API/runtime error (IDLE)
+    TeammateIdle: "NOOP"                    # Teammate agent is about to idle; no main state change
 
-    # 6. 子任务与并发子代理
-    SubagentStart: "TOOL_START"             # 生成并启动子代理 (active_tool_count++)
-    SubagentStop: "TOOL_END"                # 子代理运行结束 (active_tool_count--)
-    TaskCreated: "TOOL_START"               # 创建异步长任务 (active_tool_count++)
-    TaskCompleted: "TOOL_END"               # 标记任务已完成 (active_tool_count--)
+    # 6. Subtasks and concurrent subagents
+    SubagentStart: "TOOL_START"             # Spawned and started a subagent (active_tool_count++)
+    SubagentStop: "TOOL_END"                # Subagent finished (active_tool_count--)
+    TaskCreated: "TOOL_START"               # Async long-running task created (active_tool_count++)
+    TaskCompleted: "TOOL_END"               # Async long-running task completed (active_tool_count--)
 
-    # 7. 环境与磁盘事件
-    CwdChanged: "NOOP"                      # 工作目录改变；独立异步事件
-    FileChanged: "NOOP"                     # 被监视的磁盘文件发生变化；独立异步事件
-    WorktreeCreate: "NOOP"                  # Git 工作区创建；可能跨整个会话存在
-    WorktreeRemove: "NOOP"                  # Git 工作区移除
+    # 7. Environment and filesystem events
+    CwdChanged: "NOOP"                      # Working directory changed; independent async event
+    FileChanged: "NOOP"                     # Watched file changed on disk; independent async event
+    WorktreeCreate: "NOOP"                  # Git worktree created; may span the whole session
+    WorktreeRemove: "NOOP"                  # Git worktree removed
 
-    # 8. 性能与底层调整事件 (通常短瞬)
-    PreCompact: "AGENT_RUNNING"             # 上下文压缩前
-    PostCompact: "AGENT_RUNNING"            # 上下文压缩完成
+    # 8. Compaction and low-level adjustment events
+    PreCompact: "AGENT_RUNNING"             # Before context compaction
+    PostCompact: "AGENT_RUNNING"            # Context compaction completed
 
-    # 9. 辅助与消息展示类事件
-    Notification: "NOOP"                    # 产生桌面系统通知；类型混杂，不直接改变状态
-    MessageDisplay: "AGENT_RUNNING"         # 正在输出/打字展示 Assistant 消息内容
+    # 9. Auxiliary and message display events
+    Notification: "NOOP"                    # Desktop notification; mixed semantics, no direct state change
+    MessageDisplay: "AGENT_RUNNING"         # Assistant message is being displayed/typed

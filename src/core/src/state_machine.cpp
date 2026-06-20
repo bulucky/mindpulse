@@ -155,7 +155,7 @@ BreathState StateMachine::handle_event(const std::string& tool_id, StateMachineE
     }
 
     if (old_state != ctx.state) {
-        std::printf("[StateMachine] 工具 '%s' 触发事件 %s 状态转换: %s -> %s (嵌套深度: %d)\n",
+        std::printf("[StateMachine] tool '%s' event %s state transition: %s -> %s (active tools: %d)\n",
                     tool_id.c_str(),
                     event_to_string(event),
                     breath_state_to_string(old_state),

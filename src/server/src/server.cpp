@@ -67,7 +67,7 @@ HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
         try {
             body = nlohmann::json::parse(req.body);
         } catch (const std::exception& e) {
-            std::printf("[HttpServer] 解析 JSON 载荷失败 (来自工具: '%s'): %s\n", tool_id.c_str(), e.what());
+            std::printf("[HttpServer] failed to parse JSON payload from tool '%s': %s\n", tool_id.c_str(), e.what());
             {
                 std::lock_guard<std::mutex> lock(diagnostics_mutex_);
                 HookDiagnostics& diagnostics = diagnostics_[tool_id];
@@ -88,7 +88,7 @@ HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
         }
 
         if (event_field == nullptr) {
-            std::printf("[HttpServer] 缺少必需的 'hook_event_name' 字符串字段 (来自工具: '%s')\n", tool_id.c_str());
+            std::printf("[HttpServer] missing required string field 'hook_event_name' from tool '%s'\n", tool_id.c_str());
             {
                 std::lock_guard<std::mutex> lock(diagnostics_mutex_);
                 HookDiagnostics& diagnostics = diagnostics_[tool_id];
@@ -121,9 +121,12 @@ HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
         }
 
         if (mapped_event == StateMachineEvent::UNKNOWN) {
-            std::printf("[HttpServer] 工具 '%s' 触发了未定义/未映射的事件 '%s'\n", tool_id.c_str(), raw_event.c_str());
+            std::printf("[HttpServer] tool '%s' sent unknown or unmapped event '%s'\n", tool_id.c_str(), raw_event.c_str());
         } else {
-            std::printf("[HttpServer] 收到工具 '%s' 事件 '%s'，已映射为标准事件\n", tool_id.c_str(), raw_event.c_str());
+            std::printf("[HttpServer] received event '%s' from tool '%s' and mapped it to %s\n",
+                        raw_event.c_str(),
+                        tool_id.c_str(),
+                        event_to_string(mapped_event));
         }
 
         // 4. 发送转换后的事件至状态机（状态机会返回全局聚合状态）
@@ -192,7 +195,7 @@ bool HttpServer::start(const std::string& host, int port) {
     // 创建后台工作线程启动 listen 阻塞监听
     worker_thread_ = std::make_unique<std::thread>(&HttpServer::run, this);
 
-    std::printf("[HttpServer] 服务线程启动，正在监听 %s:%d...\n", host_.c_str(), port_);
+    std::printf("[HttpServer] service thread started; listening on %s:%d...\n", host_.c_str(), port_);
     return true;
 }
 
@@ -209,7 +212,7 @@ void HttpServer::stop() {
     worker_thread_.reset();
     is_running_ = false;
 
-    std::printf("[HttpServer] 服务已停止并清理线程。\n");
+    std::printf("[HttpServer] service stopped and worker thread cleaned up.\n");
 }
 
 bool HttpServer::is_running() const {
@@ -219,11 +222,11 @@ bool HttpServer::is_running() const {
 void HttpServer::run() {
     try {
         if (!svr_.listen(host_.c_str(), port_)) {
-            std::printf("[HttpServer] 监听 %s:%d 失败！端口可能已被占用。\n", host_.c_str(), port_);
+            std::printf("[HttpServer] failed to listen on %s:%d; the port may already be in use.\n", host_.c_str(), port_);
             is_running_ = false;
         }
     } catch (const std::exception& e) {
-        std::printf("[HttpServer] 服务运行时异常: %s\n", e.what());
+        std::printf("[HttpServer] runtime exception: %s\n", e.what());
         is_running_ = false;
     }
 }
