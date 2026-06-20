@@ -15,9 +15,12 @@
  * @brief 单个 AI 工具的状态上下文
  */
 struct ToolStateContext {
-    std::string tool_id;                      ///< 工具唯一标识 (如 "claude")
-    BreathState state = BreathState::STOPPED; ///< 当前状态
-    int active_tool_count = 0;                ///< 活跃的工具嵌套计数
+    std::string tool_id;                                       ///< 工具唯一标识 (如 "claude")
+    BreathState state = BreathState::STOPPED;                  ///< 当前状态
+    int active_tool_count = 0;                                 ///< 活跃的工具嵌套计数
+    bool session_active = false;                               ///< 是否存在活跃会话
+    bool turn_active = false;                                  ///< 当前用户回合是否仍在执行中
+    StateMachineEvent last_event = StateMachineEvent::UNKNOWN; ///< 最近处理的标准事件
 };
 
 /**
@@ -63,6 +66,13 @@ public:
     [[nodiscard]] int get_tool_active_count(const std::string& tool_id) const;
 
     /**
+     * @brief 查询特定工具最近处理的标准事件
+     * @param tool_id 工具标识
+     * @return StateMachineEvent 最近事件
+     */
+    [[nodiscard]] StateMachineEvent get_tool_last_event(const std::string& tool_id) const;
+
+    /**
      * @brief 清空并重置所有工具上下文为 STOPPED 状态
      */
     void reset();
@@ -80,6 +90,4 @@ private:
 
     std::unordered_map<std::string, ToolStateContext> tools_; ///< 所有被追踪的工具集合
     mutable std::mutex mutex_;                                ///< 线程同步互斥锁
-
 };
-

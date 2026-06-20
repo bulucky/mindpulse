@@ -70,10 +70,14 @@ TEST(StateMachineTest, ReentrancyCounting) {
     EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
     EXPECT_EQ(sm.get_tool_active_count("claude"), 1);
 
-    // 第二次工具结束 (嵌套深度 0 -> 退回 IDLE)
+    // 第二次工具结束 (嵌套深度 0，但回合未 Stop -> 保持 RUNNING)
     sm.handle_event("claude", StateMachineEvent::TOOL_END);
-    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
     EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+
+    // Stop 才表示本轮响应完成，回到 IDLE
+    sm.handle_event("claude", StateMachineEvent::AGENT_STOP);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
 }
 
 // 验证 PENDING 授权阻塞状态（不带超时降级，符合阻塞设计）
@@ -103,6 +107,123 @@ TEST(StateMachineTest, PendingBlockingAndRecovery) {
     // 5. 用户确认并调用了新工具 -> 转为 RUNNING 恢复执行
     sm.handle_event("claude", StateMachineEvent::TOOL_START);
     EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+}
+
+// 验证权限等待后收到工具结束事件时可以离开 PENDING，但回合未结束则保持 RUNNING
+TEST(StateMachineTest, PendingClearsOnToolEnd) {
+    StateMachine sm;
+    sm.handle_event("claude", StateMachineEvent::SESSION_START);
+    sm.handle_event("claude", StateMachineEvent::TOOL_START);
+    sm.handle_event("claude", StateMachineEvent::PERMISSION_REQUEST);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 1);
+
+    sm.handle_event("claude", StateMachineEvent::TOOL_END);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+
+    sm.handle_event("claude", StateMachineEvent::AGENT_STOP);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+}
+
+// 验证等待用户确认时，普通活动信号不能抢占 PENDING 指示
+TEST(StateMachineTest, PendingIsStickyUntilExplicitRecovery) {
+    StateMachine sm;
+    sm.handle_event("claude", StateMachineEvent::SESSION_START);
+    sm.handle_event("claude", StateMachineEvent::USER_PROMPT_SUBMIT);
+    sm.handle_event("claude", StateMachineEvent::PERMISSION_REQUEST);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+
+    sm.handle_event("claude", StateMachineEvent::AGENT_RUNNING);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+    EXPECT_EQ(sm.get_aggregate_state(), BreathState::PENDING);
+
+    sm.handle_event("claude", StateMachineEvent::NOOP);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+
+    sm.handle_event("claude", StateMachineEvent::PERMISSION_DENIED);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+}
+
+// 验证无配对事件不会增加嵌套计数，活动信号只改变状态
+TEST(StateMachineTest, NonCountingEventsDoNotLeakActiveCount) {
+    StateMachine sm;
+    sm.handle_event("claude", StateMachineEvent::SESSION_START);
+
+    sm.handle_event("claude", StateMachineEvent::NOOP);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+
+    sm.handle_event("claude", StateMachineEvent::AGENT_RUNNING);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+
+    sm.handle_event("claude", StateMachineEvent::AGENT_STOP);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+}
+
+// 验证一次用户回合从提交到 Stop 期间保持 RUNNING，不因工具结束提前回 IDLE
+TEST(StateMachineTest, TurnStaysRunningUntilAgentStop) {
+    StateMachine sm;
+    sm.handle_event("claude", StateMachineEvent::SESSION_START);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+
+    sm.handle_event("claude", StateMachineEvent::USER_PROMPT_SUBMIT);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+
+    sm.handle_event("claude", StateMachineEvent::TOOL_START);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 1);
+
+    sm.handle_event("claude", StateMachineEvent::TOOL_END);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+
+    sm.handle_event("claude", StateMachineEvent::AGENT_RUNNING);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+
+    sm.handle_event("claude", StateMachineEvent::AGENT_STOP);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+}
+
+// 验证 SessionStart/恢复会话会进入 IDLE，而不是停留在 STOPPED
+TEST(StateMachineTest, SessionStartAlwaysEntersIdle) {
+    StateMachine sm;
+
+    sm.handle_event("claude", StateMachineEvent::SESSION_START);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+
+    sm.handle_event("claude", StateMachineEvent::USER_PROMPT_SUBMIT);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+
+    sm.handle_event("claude", StateMachineEvent::SESSION_START);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+}
+
+// 验证会话活跃兜底事件只从 STOPPED 拉起 IDLE，不打断运行中或等待中状态
+TEST(StateMachineTest, SessionActiveFallbackDoesNotInterruptActiveStates) {
+    StateMachine sm;
+
+    sm.handle_event("claude", StateMachineEvent::SESSION_ACTIVE);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 0);
+
+    sm.handle_event("claude", StateMachineEvent::USER_PROMPT_SUBMIT);
+    sm.handle_event("claude", StateMachineEvent::TOOL_START);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 1);
+
+    sm.handle_event("claude", StateMachineEvent::SESSION_ACTIVE);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 1);
+
+    sm.handle_event("claude", StateMachineEvent::PERMISSION_REQUEST);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+
+    sm.handle_event("claude", StateMachineEvent::SESSION_ACTIVE);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::PENDING);
+    EXPECT_EQ(sm.get_tool_active_count("claude"), 1);
 }
 
 // 验证多工具状态的聚合优先级决策 (PENDING > RUNNING > IDLE > STOPPED)
@@ -137,12 +258,17 @@ TEST(StateMachineTest, MultiToolAggregation) {
     EXPECT_EQ(sm.get_tool_state("codex"), BreathState::IDLE);
     EXPECT_EQ(sm.get_aggregate_state(), BreathState::RUNNING);
 
-    // 6. 另一个也回归 IDLE -> 聚合状态为 IDLE
+    // 6. 工具结束但回合未 Stop -> 仍保持 RUNNING
     sm.handle_event("claude", StateMachineEvent::TOOL_END);
+    EXPECT_EQ(sm.get_tool_state("claude"), BreathState::RUNNING);
+    EXPECT_EQ(sm.get_aggregate_state(), BreathState::RUNNING);
+
+    // 7. 收到 Stop 后回归 IDLE -> 聚合状态为 IDLE
+    sm.handle_event("claude", StateMachineEvent::AGENT_STOP);
     EXPECT_EQ(sm.get_tool_state("claude"), BreathState::IDLE);
     EXPECT_EQ(sm.get_aggregate_state(), BreathState::IDLE);
 
-    // 7. 均退出 Session -> 聚合状态为 STOPPED
+    // 8. 均退出 Session -> 聚合状态为 STOPPED
     sm.handle_event("claude", StateMachineEvent::SESSION_END);
     sm.handle_event("codex", StateMachineEvent::SESSION_END);
     EXPECT_EQ(sm.get_aggregate_state(), BreathState::STOPPED);

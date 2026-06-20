@@ -32,11 +32,11 @@ StateMachineEvent ConfigManager::get_event_mapping(const std::string& tool_id, c
 
         // 2. 检查更新判定：如果从未载入过，或者文件最后修改时间有更新，则触发重新解析并重置缓冲区
         if (it == tool_configs_.end() || !it->second.loaded || it->second.last_write_time != current_write_time) {
-            std::printf("[ConfigManager] 检测到工具 '%s' 配置文件未载入或发生改变，正在刷新映射表缓存...\n", tool_id.c_str());
+            std::printf("[ConfigManager] config for tool '%s' is missing or changed; refreshing event map cache...\n", tool_id.c_str());
             load_tool_config(tool_id);
         }
     } catch (const std::exception& e) {
-        std::printf("[ConfigManager] 检查文件修改时间发生异常: %s\n", e.what());
+        std::printf("[ConfigManager] failed to check config file timestamp: %s\n", e.what());
     }
 
     // 3. 在内存缓冲区中做映射查找
@@ -75,7 +75,7 @@ void ConfigManager::load_tool_config(const std::string& tool_id) {
 
         // 检查顶层是否包含与 tool_id 相同的键值
         if (!doc[tool_id]) {
-            std::printf("[ConfigManager] 错误: %s.yaml 中未发现顶级键 '%s'\n", tool_id.c_str(), tool_id.c_str());
+            std::printf("[ConfigManager] error: %s.yaml does not contain top-level key '%s'\n", tool_id.c_str(), tool_id.c_str());
             return;
         }
 
@@ -102,10 +102,10 @@ void ConfigManager::load_tool_config(const std::string& tool_id) {
 
         // 更新热点缓存区 (Buffer)
         tool_configs_[tool_id] = config;
-        std::printf("[ConfigManager] 工具 '%s' 的 %zu 个事件映射表重载成功。\n", tool_id.c_str(), config.event_map.size());
+        std::printf("[ConfigManager] reloaded %zu event mappings for tool '%s'.\n", config.event_map.size(), tool_id.c_str());
 
     } catch (const std::exception& e) {
-        std::printf("[ConfigManager] 解析 %s.yaml 失败: %s\n", tool_id.c_str(), e.what());
+        std::printf("[ConfigManager] failed to parse %s.yaml: %s\n", tool_id.c_str(), e.what());
     }
 }
 
@@ -118,45 +118,45 @@ void ConfigManager::write_default_config_if_missing(const std::string& tool_id) 
         out << "claude:\n"
             << "  name: \"Claude Code\"\n"
             << "  events:\n"
-            << "    # 1. 会话与启动生命周期\n"
+            << "    # 1. Session and startup lifecycle\n"
             << "    SessionStart: \"SESSION_START\"\n"
             << "    Setup: \"SESSION_START\"\n"
             << "    SessionEnd: \"SESSION_END\"\n"
-            << "    InstructionsLoaded: \"SESSION_START\"\n"
-            << "    ConfigChange: \"SESSION_START\"\n\n"
-            << "    # 2. 用户交互与输入\n"
+            << "    InstructionsLoaded: \"SESSION_ACTIVE\"\n"
+            << "    ConfigChange: \"NOOP\"\n\n"
+            << "    # 2. User interaction and input\n"
             << "    UserPromptSubmit: \"USER_PROMPT_SUBMIT\"\n"
             << "    UserPromptExpansion: \"USER_PROMPT_SUBMIT\"\n\n"
-            << "    # 3. 工具调用生命周期\n"
+            << "    # 3. Tool invocation lifecycle\n"
             << "    PreToolUse: \"TOOL_START\"\n"
             << "    PostToolUse: \"TOOL_END\"\n"
             << "    PostToolUseFailure: \"TOOL_END\"\n"
-            << "    PostToolBatch: \"TOOL_END\"\n\n"
-            << "    # 4. 授权与人工确认 (关键 PENDING 状态)\n"
+            << "    PostToolBatch: \"AGENT_RUNNING\"\n\n"
+            << "    # 4. Permission and elicitation gates (PENDING state)\n"
             << "    PermissionRequest: \"PERMISSION_REQUEST\"\n"
             << "    PermissionDenied: \"PERMISSION_DENIED\"\n"
             << "    Elicitation: \"PERMISSION_REQUEST\"\n"
-            << "    ElicitationResult: \"TOOL_START\"\n\n"
-            << "    # 5. 回合结束与停止信号\n"
+            << "    ElicitationResult: \"AGENT_RUNNING\"\n\n"
+            << "    # 5. Turn completion and stop signals\n"
             << "    Stop: \"AGENT_STOP\"\n"
             << "    StopFailure: \"AGENT_STOP\"\n"
-            << "    TeammateIdle: \"TOOL_END\"\n\n"
-            << "    # 6. 子任务与并发子代理\n"
+            << "    TeammateIdle: \"NOOP\"\n\n"
+            << "    # 6. Subtasks and concurrent subagents\n"
             << "    SubagentStart: \"TOOL_START\"\n"
             << "    SubagentStop: \"TOOL_END\"\n"
             << "    TaskCreated: \"TOOL_START\"\n"
             << "    TaskCompleted: \"TOOL_END\"\n\n"
-            << "    # 7. 环境与磁盘事件\n"
-            << "    CwdChanged: \"TOOL_START\"\n"
-            << "    FileChanged: \"TOOL_START\"\n"
-            << "    WorktreeCreate: \"TOOL_START\"\n"
-            << "    WorktreeRemove: \"TOOL_END\"\n\n"
-            << "    # 8. 性能与底层调整事件\n"
-            << "    PreCompact: \"TOOL_START\"\n"
-            << "    PostCompact: \"TOOL_END\"\n\n"
-            << "    # 9. 辅助与消息展示类事件\n"
-            << "    Notification: \"TOOL_START\"\n"
-            << "    MessageDisplay: \"TOOL_START\"\n";
+            << "    # 7. Environment and filesystem events\n"
+            << "    CwdChanged: \"NOOP\"\n"
+            << "    FileChanged: \"NOOP\"\n"
+            << "    WorktreeCreate: \"NOOP\"\n"
+            << "    WorktreeRemove: \"NOOP\"\n\n"
+            << "    # 8. Compaction and low-level adjustment events\n"
+            << "    PreCompact: \"AGENT_RUNNING\"\n"
+            << "    PostCompact: \"AGENT_RUNNING\"\n\n"
+            << "    # 9. Auxiliary and message display events\n"
+            << "    Notification: \"NOOP\"\n"
+            << "    MessageDisplay: \"AGENT_RUNNING\"\n";
     } else {
         // 通用备用模版
         out << tool_id << ":\n"
