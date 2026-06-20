@@ -100,17 +100,25 @@ HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
         }
 
         std::string raw_event = body[event_field].get<std::string>();
+        std::string reason;
+        if (body.contains("reason") && body["reason"].is_string()) {
+            reason = body["reason"].get<std::string>();
+        }
         {
             std::lock_guard<std::mutex> lock(diagnostics_mutex_);
             HookDiagnostics& diagnostics = diagnostics_[tool_id];
             diagnostics.received_event_count++;
             diagnostics.last_raw_event = raw_event;
             diagnostics.last_event_field = event_field;
+            diagnostics.last_reason = reason;
             diagnostics.last_error.clear();
         }
 
         // 3. 通过 ConfigManager 将原始 Hook 事件转换为标准化状态机事件
         StateMachineEvent mapped_event = config_mgr_.get_event_mapping(tool_id, raw_event);
+        if (raw_event == "SessionEnd" && (reason == "resume" || reason == "clear")) {
+            mapped_event = StateMachineEvent::SESSION_START;
+        }
 
         if (mapped_event == StateMachineEvent::UNKNOWN) {
             std::printf("[HttpServer] 工具 '%s' 触发了未定义/未映射的事件 '%s'\n", tool_id.c_str(), raw_event.c_str());
@@ -144,11 +152,13 @@ HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
                 body["received_event_count"] = it->second.received_event_count;
                 body["last_raw_event"] = it->second.last_raw_event;
                 body["last_event_field"] = it->second.last_event_field;
+                body["last_reason"] = it->second.last_reason;
                 body["last_error"] = it->second.last_error;
             } else {
                 body["received_event_count"] = 0;
                 body["last_raw_event"] = "";
                 body["last_event_field"] = "";
+                body["last_reason"] = "";
                 body["last_error"] = "";
             }
         }

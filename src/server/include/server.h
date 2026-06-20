@@ -57,6 +57,7 @@ private:
         int received_event_count = 0;
         std::string last_raw_event;
         std::string last_event_field;
+        std::string last_reason;
         std::string last_error;
     };
 
