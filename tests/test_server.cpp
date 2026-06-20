@@ -60,7 +60,8 @@ TEST(HttpServerTest, DispatchEventsToStateMachine) {
         auto res = client.Post("/hook/claude", body.dump(), "application/json");
         ASSERT_NE(res, nullptr);
         EXPECT_EQ(res->status, 200);
-        EXPECT_EQ(res->body, "ok");
+        EXPECT_EQ(res->body, "{}");
+        EXPECT_EQ(res->get_header_value("Content-Type"), "application/json");
 
         // 检验状态机联动：SessionStart -> IDLE
         EXPECT_EQ(state_machine.get_tool_state("claude"), BreathState::IDLE);
@@ -73,7 +74,8 @@ TEST(HttpServerTest, DispatchEventsToStateMachine) {
         auto res = client.Post("/hook/claude", body.dump(), "application/json");
         ASSERT_NE(res, nullptr);
         EXPECT_EQ(res->status, 200);
-        EXPECT_EQ(res->body, "ok");
+        EXPECT_EQ(res->body, "{}");
+        EXPECT_EQ(res->get_header_value("Content-Type"), "application/json");
 
         // 检验状态机联动：PreToolUse -> TOOL_START -> RUNNING
         EXPECT_EQ(state_machine.get_tool_state("claude"), BreathState::RUNNING);

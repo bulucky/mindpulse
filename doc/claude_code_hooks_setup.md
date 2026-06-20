@@ -1,24 +1,74 @@
-# Claude Code Hooks 配置指南
+# Claude Code Hooks 接入说明
 
-本指南提供了将 `mindpulse` 指示灯状态机与 **Claude Code** 进行并联联调的 Hook 配置。你可以直接复制本页面的 JSON 配置，并粘贴进 Claude Code 的全局配置文件中。
+本文说明如何把 **Claude Code** 的 hook 事件接入 **MindPulse**，让任务栏托盘指示灯反映 Claude Code 当前是否空闲、运行中，或正在等待用户操作。
 
----
+官方文档：<https://code.claude.com/docs/en/hooks>
 
-## 1. 配置文件路径
+## 结论
 
-根据你的操作系统，打开或创建以下路径的 `settings.json` 文件：
+推荐使用 Claude Code 原生的 `type: "http"` hook。
 
-* **Windows**: `%USERPROFILE%\.claude\settings.json`  
-  (例如：`C:\Users\<你的用户名>\.claude\settings.json`)
-* **macOS / Linux**: `~/.claude/settings.json`
+你当前 `settings.json` 中使用的是 `type: "command" + curl`，并手动发送：
 
----
+```json
+{ "event": "PermissionRequest" }
+```
 
-## 2. 方案 A：全量 Curl 配置方案 (推荐，直接复制可用)
+这种方式现在可以工作，因为 MindPulse 服务端兼容读取 `event` 字段。但从官方文档和当前源码看，它不是最合理的长期配置：
 
-根据 Claude Code 的官方设计，所有的 Hook 结构必须符合 **`Event -> Matcher[] -> Hook[]`** 的层级（而不是直接配字符串）。
+| 方式 | 结论 | 原因 |
+|---|---|---|
+| `type: "http"` | 推荐 | Claude Code 会自动把官方 hook JSON 作为 POST body 发送，包含 `hook_event_name`；不需要 `curl`，没有 Windows 引号转义问题 |
+| `type: "command" + curl --data-binary @-` | 可作为降级方案 | 依赖外部 `curl`，但可以原样转发 Claude Code 传给 hook 的官方 JSON |
+| `type: "command" + curl` 手工拼 JSON | 不推荐 | JSON 转义冗长，且你当前写法只转发事件名，丢弃了官方 payload |
+| `curl` 发送 `event` | 可兼容，不推荐 | `event` 是 MindPulse 的兼容字段；官方字段是 `hook_event_name` |
+| `curl` 手工发送 `hook_event_name` | 可兼容 | 比 `event` 更接近官方语义，但仍不如直接转发 stdin |
 
-你可以直接复制以下完整的配置块粘贴到 `settings.json` 中。该配置使用原生 `curl` 命令，不依赖外部脚本：
+## MindPulse 如何解析事件
+
+MindPulse 在本机启动 HTTP 服务：
+
+```text
+http://127.0.0.1:9876/hook/claude
+```
+
+当前服务端逻辑：
+
+1. 优先读取 JSON body 中的 `hook_event_name`。
+2. 如果没有 `hook_event_name`，再兼容读取 `event`。
+3. 用 `config/claude.yaml` 把 Claude Code hook 事件映射为内部状态机事件。
+4. 成功处理后返回 `{}`，响应类型为 `application/json`。
+
+因此：
+
+- 原生 HTTP hook 是最干净的方式，因为 Claude Code 会自动发送 `hook_event_name`。
+- 旧的 `curl -d "{\"event\":\"...\"}"` 可以继续用于手工测试或旧配置迁移。
+- 新写的命令式 hook 如果还要用 `curl`，应优先用 `--data-binary @-` 原样转发 stdin。
+- 如果看到 `HTTP hook must return JSON, but got non-JSON response body: ok`，说明正在运行的 MindPulse 还是旧版本，需要重新构建并重启。
+
+## 指示灯状态
+
+| 指示灯状态 | 含义 | 典型来源 |
+|---|---|---|
+| `STOPPED` | Claude Code 会话未运行 | `SessionEnd` |
+| `IDLE` | 会话存在，但当前无任务 | `SessionStart`、`Stop`、工具计数归零 |
+| `RUNNING` | Claude 正在处理 prompt、展示回复或调用工具 | `UserPromptSubmit`、`PreToolUse`、`MessageDisplay` |
+| `PENDING` | 正在等待用户确认或输入 | `PermissionRequest`、`Elicitation` |
+
+`PENDING` 是阻塞态。进入 `PENDING` 后，普通活动事件不会把指示灯抢回 `RUNNING`；只有明确的恢复或结束事件才会离开该状态。
+
+## 推荐配置：原生 HTTP Hook
+
+把下面的 `hooks` 合并到 Claude Code 的 settings 文件中。
+
+常见位置：
+
+| 平台 | 文件 |
+|---|---|
+| Windows | `%USERPROFILE%\.claude\settings.json` |
+| macOS / Linux | `~/.claude/settings.json` |
+
+推荐只注册对状态指示有意义的事件。`InstructionsLoaded`、`ConfigChange`、`CwdChanged`、`FileChanged`、`WorktreeCreate`、`WorktreeRemove`、`Notification`、`TeammateIdle` 在当前 MindPulse 映射里是 `NOOP`，不需要转发。
 
 ```json
 {
@@ -27,10 +77,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"SessionStart\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -38,10 +85,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"Setup\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -49,32 +93,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"SessionEnd\\\"}\""
-          }
-        ]
-      }
-    ],
-    "InstructionsLoaded": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"InstructionsLoaded\\\"}\""
-          }
-        ]
-      }
-    ],
-    "ConfigChange": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"ConfigChange\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -82,10 +101,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"UserPromptSubmit\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -93,10 +109,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"UserPromptExpansion\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -104,10 +117,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"PreToolUse\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -115,10 +125,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"PostToolUse\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -126,10 +133,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"PostToolUseFailure\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -137,10 +141,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"PostToolBatch\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -148,10 +149,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"PermissionRequest\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -159,10 +157,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"PermissionDenied\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -170,10 +165,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"Elicitation\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -181,10 +173,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"ElicitationResult\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -192,10 +181,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"Stop\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -203,21 +189,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"StopFailure\\\"}\""
-          }
-        ]
-      }
-    ],
-    "TeammateIdle": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"TeammateIdle\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -225,10 +197,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"SubagentStart\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -236,10 +205,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"SubagentStop\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -247,10 +213,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"TaskCreated\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -258,54 +221,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"TaskCompleted\\\"}\""
-          }
-        ]
-      }
-    ],
-    "CwdChanged": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"CwdChanged\\\"}\""
-          }
-        ]
-      }
-    ],
-    "FileChanged": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"FileChanged\\\"}\""
-          }
-        ]
-      }
-    ],
-    "WorktreeCreate": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"WorktreeCreate\\\"}\""
-          }
-        ]
-      }
-    ],
-    "WorktreeRemove": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"WorktreeRemove\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -313,10 +229,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"PreCompact\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -324,21 +237,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"PostCompact\\\"}\""
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"Notification\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ],
@@ -346,10 +245,7 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"MessageDisplay\\\"}\""
-          }
+          { "type": "http", "url": "http://127.0.0.1:9876/hook/claude" }
         ]
       }
     ]
@@ -357,39 +253,25 @@
 }
 ```
 
----
+说明：
 
-## 3. 方案 B：Node.js 中转脚本方案 (推荐，转义更清爽)
+- 对 `PreToolUse`、`PostToolUse`、`PermissionRequest` 等工具相关事件，`matcher: ""` 表示匹配全部工具。
+- 对 `UserPromptSubmit`、`PostToolBatch`、`Stop`、`TaskCreated`、`TaskCompleted`、`MessageDisplay` 等不支持 matcher 的事件，Claude Code 会忽略 matcher；保留空 matcher 只是为了配置结构一致。
+- 原生 HTTP hook 会把完整官方 payload 发给 MindPulse，包括 `session_id`、`cwd`、`hook_event_name` 以及事件专属字段。MindPulse 当前只需要 `hook_event_name`。
+- Claude Code 会解析 HTTP hook 的非空响应体；MindPulse 成功时返回空 JSON 对象 `{}`。
 
-如果在 Windows `cmd.exe` 环境下运行 `curl` 产生转义引号冲突，可使用中转脚本方案：
+## 降级配置：Command Hook + curl
 
-### A. 创建中转脚本 `~/.claude/send_hook.js`
-```javascript
-const http = require('http');
-const event = process.argv[2];
+如果当前 Claude Code 版本不支持 `type: "http"`，或者你的环境必须通过命令 hook 转发，可以继续使用 `curl`。
 
-if (!event) process.exit(0);
+更合理的 command hook 写法是转发 stdin，而不是手工拼接事件名。官方 command hook 会把完整 hook JSON 写入子进程 stdin，下面的命令会原样转发它：
 
-const data = JSON.stringify({ event: event });
-const req = http.request({
-  hostname: '127.0.0.1',
-  port: 9876,
-  path: '/hook/claude',
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Content-Length': data.length
-  }
-}, (res) => {
-  res.on('data', () => {});
-});
-
-req.on('error', () => {});
-req.write(data);
-req.end();
+```text
+curl -sS -X POST http://127.0.0.1:9876/hook/claude -H "Content-Type: application/json" --data-binary @-
 ```
 
-### B. 配置 `settings.json`
+单个事件示例：
+
 ```json
 {
   "hooks": {
@@ -399,12 +281,84 @@ req.end();
         "hooks": [
           {
             "type": "command",
-            "command": "node %USERPROFILE%/.claude/send_hook.js SessionStart"
+            "command": "curl -sS -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" --data-binary @-"
           }
         ]
       }
     ]
-    // ... 其他事件依此类推，同样使用 node %USERPROFILE%/.claude/send_hook.js <EventName> 包裹
   }
 }
 ```
+
+你当前的写法：
+
+```json
+{
+  "type": "command",
+  "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"SessionStart\\\"}\""
+}
+```
+
+仍然可以运行，但只建议作为旧配置保留。后续新增事件时应优先改成 stdin 转发，或直接迁移到原生 HTTP hook。
+
+如果必须手工构造 JSON，至少使用官方字段：
+
+```json
+{
+  "type": "command",
+  "command": "curl -s -X POST http://127.0.0.1:9876/hook/claude -H \"Content-Type: application/json\" -d \"{\\\"hook_event_name\\\":\\\"SessionStart\\\"}\""
+}
+```
+
+## 事件映射
+
+MindPulse 的 Claude Code 映射在 `config/claude.yaml` 中维护，并支持运行时热重载。
+
+| Claude Code 事件 | MindPulse 映射 | 指示灯效果 |
+|---|---|---|
+| `SessionStart`、`Setup` | `SESSION_START` | 进入 `IDLE`，清空工具计数 |
+| `SessionEnd` | `SESSION_END` | 进入 `STOPPED` |
+| `UserPromptSubmit`、`UserPromptExpansion` | `USER_PROMPT_SUBMIT` | 进入 `RUNNING` |
+| `PreToolUse` | `TOOL_START` | 进入 `RUNNING`，工具计数 +1 |
+| `PostToolUse`、`PostToolUseFailure` | `TOOL_END` | 工具计数 -1；归零后进入 `IDLE` |
+| `PostToolBatch` | `AGENT_RUNNING` | 进入 `RUNNING`，不改工具计数 |
+| `PermissionRequest`、`Elicitation` | `PERMISSION_REQUEST` | 进入 `PENDING` |
+| `PermissionDenied` | `PERMISSION_DENIED` | 进入 `RUNNING` |
+| `ElicitationResult` | `AGENT_RUNNING` | 用户输入已返回，进入运行态，不改工具计数 |
+| `Stop`、`StopFailure` | `AGENT_STOP` | 进入 `IDLE`，清空工具计数 |
+| `SubagentStart`、`TaskCreated` | `TOOL_START` | 进入 `RUNNING`，工具计数 +1 |
+| `SubagentStop`、`TaskCompleted` | `TOOL_END` | 工具计数 -1 |
+| `PreCompact`、`PostCompact`、`MessageDisplay` | `AGENT_RUNNING` | 进入 `RUNNING`，不改工具计数 |
+| `InstructionsLoaded`、`ConfigChange`、`TeammateIdle`、`CwdChanged`、`FileChanged`、`WorktreeCreate`、`WorktreeRemove`、`Notification` | `NOOP` | 不改变指示灯 |
+
+## 验证步骤
+
+1. 启动 MindPulse，确认托盘图标可见。
+2. 启动 Claude Code，新会话应进入 `IDLE`。
+3. 提交 prompt，应进入 `RUNNING`。
+4. 触发需要用户确认的工具调用，应进入 `PENDING`。
+5. 在用户未确认前，即使出现 `MessageDisplay`、`PostCompact` 等活动事件，也应保持 `PENDING`。
+6. 用户处理权限请求，并收到恢复或结束类事件后，状态才应离开 `PENDING`。
+7. Claude 完成本轮响应后，应回到 `IDLE`。
+8. 会话结束后，应进入 `STOPPED`。
+
+## 故障排查
+
+如果指示灯没有变化：
+
+- 确认 MindPulse 正在运行，并监听 `127.0.0.1:9876`。
+- 确认 Claude Code 的 `settings.json` 是合法 JSON。
+- 如果使用 `curl`，先在终端手工执行一条请求：
+
+  ```powershell
+  curl.exe -s -X POST http://127.0.0.1:9876/hook/claude -H "Content-Type: application/json" -d "{\"hook_event_name\":\"UserPromptSubmit\"}"
+  ```
+
+- 如果使用原生 HTTP hook，优先查看 Claude Code 的 hook 调试输出，确认事件确实触发。
+- 如果持续卡在 `PENDING`，检查是否缺少 `PermissionDenied`、`ElicitationResult`、`PostToolUse`、`Stop` 等恢复或结束事件。
+
+## 参考
+
+- Claude Code Hooks Reference: <https://code.claude.com/docs/en/hooks>
+- Claude Code Settings Reference: <https://code.claude.com/docs/en/settings>
+- MindPulse 设计文档: [DESIGN.md](../DESIGN.md)

@@ -59,9 +59,9 @@ HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
         // 4. 发送转换后的事件至状态机（状态机会返回全局聚合状态）
         state_machine_.handle_event(tool_id, mapped_event);
 
-        // 5. 响应 OK
+        // 5. Claude Code HTTP hooks 会解析非空响应体，成功时返回空 JSON 对象。
         res.status = 200;
-        res.set_content("ok", "text/plain");
+        res.set_content("{}", "application/json");
     });
 }
 
