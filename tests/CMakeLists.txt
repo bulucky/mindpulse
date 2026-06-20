@@ -3,6 +3,7 @@ set(GTEST_SOURCES
     test_breath_engine_test.cpp
     test_icon_renderer_test.cpp
     test_config_manager.cpp
+    test_state_machine.cpp
     test_tray_integration.cpp
 )
 

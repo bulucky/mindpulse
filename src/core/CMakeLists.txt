@@ -2,7 +2,9 @@ set(CORE_SOURCES
     src/breath_engine.cpp
     src/icon_renderer.cpp
     src/config_manager.cpp
+    src/state_machine.cpp
 )
+
 
 add_library(core STATIC ${CORE_SOURCES})
 
