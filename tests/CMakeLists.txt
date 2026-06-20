@@ -7,10 +7,12 @@ endif()
 set(GTEST_SOURCES
     ${CMAKE_SOURCE_DIR}/src/core/breath_engine.cpp
     ${CMAKE_SOURCE_DIR}/src/core/icon_renderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/config_manager.cpp
     ${PLATFORM_UI_SOURCES}
     test_main.cpp
     test_breath_engine_test.cpp
     test_icon_renderer_test.cpp
+    test_config_manager.cpp
     test_tray_integration.cpp
 )
 
