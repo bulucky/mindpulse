@@ -10,10 +10,10 @@ MindPulse 是一个 **Windows 系统托盘指示器**，以呼吸灯动画图标
 
 | 状态 | 颜色 | 动画 | 含义 |
 |:---|:---|:---|:---|
-| **静息** Stopped | <sub>⬤</sub> 暗酒红 `#792740` | 静态微光，无旋转 | 无 AI 工具运行 |
-| **就绪** Idle | <sub>⬤</sub> 薄荷绿 `#69ad9b` | 深慢呼吸 4.0s 周期，缓慢旋转 | 工具空闲，等待指令 |
-| **处理中** Running | <sub>⬤</sub> 薰衣草紫 `#61649f` | 活跃呼吸 1.8s 周期，快速旋转 | Agent 正在执行任务 |
-| **等待中** Pending | <sub>⬤</sub> 陶土橙 `#e59e67` | 三次脉冲 + 暂停，3.0s 周期 | 需要用户输入或批准 |
+| **静息** Stopped | <svg width="14" height="14" viewBox="0 0 56 56" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><circle cx="28" cy="28" r="24" fill="none" stroke="#792740" stroke-width="6" stroke-linecap="round" stroke-dasharray="31.07 19.20" /></svg> 暗酒红 `#792740` | 静态微光，不旋转 | 无 AI 工具运行 |
+| **就绪** Idle | <svg width="14" height="14" viewBox="0 0 56 56" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><circle cx="28" cy="28" r="24" fill="none" stroke="#69ad9b" stroke-width="6" stroke-linecap="round" stroke-dasharray="31.07 19.20" /></svg> 薄荷绿 `#69ad9b` | 呼吸变速旋转（4.0s 周期，慢速） | 工具空闲，等待指令 |
+| **处理中** Running | <svg width="14" height="14" viewBox="0 0 56 56" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><circle cx="28" cy="28" r="24" fill="none" stroke="#61649f" stroke-width="6" stroke-linecap="round" stroke-dasharray="31.07 19.20" /></svg> 薰衣草紫 `#61649f` | 呼吸变速自旋（1.8s 周期，快速） | Agent 正在执行任务 |
+| **等待中** Pending | <svg width="14" height="14" viewBox="0 0 56 56" style="vertical-align: middle; margin-right: 4px; display: inline-block;"><circle cx="28" cy="28" r="24" fill="none" stroke="#e59e67" stroke-width="6" stroke-linecap="round" stroke-dasharray="31.07 19.20" /></svg> 陶土橙 `#e59e67` | 3次脉冲变速自旋 + 暂停（3.0s 周期） | 需要用户输入或批准 |
 
 **多工具优先级**: Pending > Running > Idle > Stopped（同时追踪多个 AI 工具时，取最高优先级状态）
 
@@ -133,6 +133,12 @@ POST 响应为 `{}`（空 JSON 对象），满足 Claude Code 对 HTTP 钩子返
 | nlohmann/json | JSON 解析（FetchContent，头文件库） |
 | yaml-cpp | YAML 配置解析（FetchContent） |
 | Win32 API | 系统托盘（Shell_NotifyIcon, CreateDIBSection） |
+
+---
+
+## 待办事项 (Todo)
+
+- [ ] **原生适配全平台**：实现 macOS (Cocoa) 和 Linux (AppIndicator) 端的原生系统托盘支持，摆脱目前的 stdout 日志桩降级方案。
 
 ---
 
