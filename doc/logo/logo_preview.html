@@ -127,25 +127,23 @@
       animation: fluent-glow 4.0s ease-in-out infinite;
     }
 
-    .fluent-ring-svg {
+    .fluent-logo-svg {
       width: 90px;
       height: 90px;
-      color: url(#grad1);
-      transform-origin: center;
-      animation: fluent-spin 6.0s linear infinite;
+      display: block;
       filter: drop-shadow(0 0 8px rgba(105, 173, 155, 0.4)) 
               drop-shadow(0 0 20px rgba(97, 100, 255, 0.2));
       z-index: 2;
     }
 
-    .ring-circle {
-      cx: 28;
-      cy: 28;
-      r: 24;
-      fill: none;
-      stroke-width: 3.5;
-      stroke-linecap: round;
-      stroke-dasharray: 31.07 19.20;
+    .fluent-ring-circle {
+      transform-origin: center;
+      animation: fluent-spin 6.0s linear infinite;
+    }
+
+    .fluent-pulse-path {
+      transform-origin: 28px 28px;
+      animation: pulse-beat 1.8s ease-in-out infinite;
     }
 
     /* Option B Visual Mockup */
@@ -161,13 +159,21 @@
       box-shadow: 0 8px 30px rgba(0,0,0,0.6);
     }
 
-    .flat-ring-svg {
+    .flat-logo-svg {
       width: 96px;
       height: 96px;
-      color: url(#grad2);
+      display: block;
+      filter: drop-shadow(0 0 10px rgba(97, 100, 255, 0.5));
+    }
+
+    .flat-ring-circle {
       transform-origin: center;
       animation: flat-spin 3.5s linear infinite;
-      filter: drop-shadow(0 0 10px rgba(97, 100, 255, 0.5));
+    }
+
+    .flat-pulse-path {
+      transform-origin: 28px 28px;
+      animation: pulse-beat 1.8s ease-in-out infinite;
     }
 
     .draft-img {
@@ -212,6 +218,14 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    @keyframes pulse-beat {
+      0%, 100% { transform: scale(1); opacity: 0.55; }
+      12.5% { transform: scale(1.16); opacity: 1.0; }
+      25% { transform: scale(0.95); opacity: 0.4; }
+      37.5% { transform: scale(1.08); opacity: 0.95; }
+      50%, 100% { transform: scale(1); opacity: 0.55; }
+    }
   </style>
 </head>
 <body>
@@ -247,14 +261,15 @@
     <div class="logo-card">
       <div class="preview-box">
         <div class="fluent-icon-bg">
-          <svg class="fluent-ring-svg" viewBox="0 0 56 56">
-            <circle class="ring-circle" stroke="url(#grad1)" />
+          <svg class="fluent-logo-svg" viewBox="0 0 56 56">
+            <circle class="fluent-ring-circle" stroke="url(#grad1)" cx="28" cy="28" r="24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="31.07 19.20" />
+            <path class="fluent-pulse-path" stroke="url(#grad1)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M 14 28 L 20 28 L 22 31 L 25 14 L 28 42 L 31 30 L 33 28 L 42 28" />
           </svg>
         </div>
       </div>
       <div class="logo-meta">
         <h3>方案 A: Windows 11 Fluent 3D</h3>
-        <p>契合 Windows 11 Fluent 设计规范。微光毛玻璃感、圆润倒角、深色混合渐变背景，使旋转的渐变呼吸灯呈现精细的立体反射效果。</p>
+        <p>契合 Windows 11 Fluent 设计规范。微光毛玻璃感、圆润倒角、深色混合渐变背景，使旋转的渐变呼吸灯与脉搏心跳呈现精细的立体反射效果。</p>
       </div>
     </div>
 
@@ -262,14 +277,15 @@
     <div class="logo-card">
       <div class="preview-box">
         <div class="flat-icon-bg">
-          <svg class="flat-ring-svg" viewBox="0 0 56 56">
-            <circle class="ring-circle" stroke="url(#grad2)" />
+          <svg class="flat-logo-svg" viewBox="0 0 56 56">
+            <circle class="flat-ring-circle" stroke="url(#grad2)" cx="28" cy="28" r="24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="31.07 19.20" />
+            <path class="flat-pulse-path" stroke="url(#grad2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M 14 28 L 20 28 L 22 31 L 25 14 L 28 42 L 31 30 L 33 28 L 42 28" />
           </svg>
         </div>
       </div>
       <div class="logo-meta">
         <h3>方案 B: Ultra-minimalist Neon Vector</h3>
-        <p>极致极客扁平风。纯黑背景衬托强对比度的霓虹双色旋转呼吸环，边缘干脆，高饱和度，极具前卫开发者工具的质感。</p>
+        <p>极致极客扁平风。纯黑背景衬托强对比度的霓虹旋转呼吸环与中心心跳脉搏线。静中有动，完美点题“MindPulse”心率脉动的设计理念。</p>
       </div>
     </div>
 
