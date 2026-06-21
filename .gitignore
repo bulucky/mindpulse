@@ -8,7 +8,7 @@ DESIGN.md
 tests
 
 # Fonts
-*.woff2
+*.ttf
 
 # Scripts
 *.py
