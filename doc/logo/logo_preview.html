@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindPulse Logo 方案预览</title>
+  <style>
+    :root {
+      --bg-dark: #090a0f;
+      --bg-card: #12131a;
+      --border: rgba(255, 255, 255, 0.08);
+      --text-primary: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --state-idle: #69ad9b;
+      --state-running: #61649f;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 40px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+      max-width: 800px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin: 0 0 12px;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #69ad9b, #9b9eff, #e59e67);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 40px;
+      max-width: 1000px;
+      width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .section-title {
+      grid-column: 1 / -1;
+      font-size: 20px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-top: 24px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .logo-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .logo-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .preview-box {
+      width: 200px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    /* Option A Visual Mockup */
+    .fluent-icon-bg {
+      width: 160px;
+      height: 160px;
+      border-radius: 36px;
+      background: radial-gradient(circle at 10% 10%, #1e2230 0%, #0f1016 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 
+                  inset 0 2px 8px rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .fluent-icon-bg::after {
+      content: "";
+      position: absolute;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(105, 173, 155, 0.15) 0%, transparent 70%);
+      animation: fluent-glow 4.0s ease-in-out infinite;
+    }
+
+    .fluent-ring-svg {
+      width: 90px;
+      height: 90px;
+      color: url(#grad1);
+      transform-origin: center;
+      animation: fluent-spin 6.0s linear infinite;
+      filter: drop-shadow(0 0 8px rgba(105, 173, 155, 0.4)) 
+              drop-shadow(0 0 20px rgba(97, 100, 255, 0.2));
+      z-index: 2;
+    }
+
+    .ring-circle {
+      cx: 28;
+      cy: 28;
+      r: 24;
+      fill: none;
+      stroke-width: 3.5;
+      stroke-linecap: round;
+      stroke-dasharray: 31.07 19.20;
+    }
+
+    /* Option B Visual Mockup */
+    .flat-icon-bg {
+      width: 160px;
+      height: 160px;
+      background: #000;
+      border-radius: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    }
+
+    .flat-ring-svg {
+      width: 96px;
+      height: 96px;
+      color: url(#grad2);
+      transform-origin: center;
+      animation: flat-spin 3.5s linear infinite;
+      filter: drop-shadow(0 0 10px rgba(97, 100, 255, 0.5));
+    }
+
+    .draft-img {
+      width: 100%;
+      max-width: 320px;
+      aspect-ratio: 1;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      margin-bottom: 20px;
+      background: #000;
+    }
+
+    .logo-meta {
+      text-align: center;
+    }
+
+    .logo-meta h3 {
+      font-size: 18px;
+      margin: 0 0 8px;
+      color: var(--text-primary);
+    }
+
+    .logo-meta p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    @keyframes fluent-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes fluent-glow {
+      0%, 100% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 0.9; transform: scale(1.15); }
+    }
+
+    @keyframes flat-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>MindPulse Logo 方案对比</h1>
+    <p>我们在 <code>doc/logo/</code> 目录中输出了两种方案的图片草稿。下方提供 HTML 动态渲染模型与静态草稿大图的直观比对，用于最终选择。</p>
+  </header>
+
+  <div class="container">
+    
+    <!-- SVG Gradient Definitions (Hidden) -->
+    <svg width="0" height="0" style="position: absolute;">
+      <defs>
+        <!-- Option A: Ready to Running gradient -->
+        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#69ad9b" />
+          <stop offset="100%" stop-color="#61649f" />
+        </linearGradient>
+        <!-- Option B: Vibrant Neon gradient -->
+        <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#69ad9b" />
+          <stop offset="50%" stop-color="#9b9eff" />
+          <stop offset="100%" stop-color="#61649f" />
+        </linearGradient>
+      </defs>
+    </svg>
+
+    <!-- SECTION: HTML Dynamic Render -->
+    <div class="section-title">方案 A / B HTML 动态渲染原型</div>
+
+    <!-- Option A Card -->
+    <div class="logo-card">
+      <div class="preview-box">
+        <div class="fluent-icon-bg">
+          <svg class="fluent-ring-svg" viewBox="0 0 56 56">
+            <circle class="ring-circle" stroke="url(#grad1)" />
+          </svg>
+        </div>
+      </div>
+      <div class="logo-meta">
+        <h3>方案 A: Windows 11 Fluent 3D</h3>
+        <p>契合 Windows 11 Fluent 设计规范。微光毛玻璃感、圆润倒角、深色混合渐变背景，使旋转的渐变呼吸灯呈现精细的立体反射效果。</p>
+      </div>
+    </div>
+
+    <!-- Option B Card -->
+    <div class="logo-card">
+      <div class="preview-box">
+        <div class="flat-icon-bg">
+          <svg class="flat-ring-svg" viewBox="0 0 56 56">
+            <circle class="ring-circle" stroke="url(#grad2)" />
+          </svg>
+        </div>
+      </div>
+      <div class="logo-meta">
+        <h3>方案 B: Ultra-minimalist Neon Vector</h3>
+        <p>极致极客扁平风。纯黑背景衬托强对比度的霓虹双色旋转呼吸环，边缘干脆，高饱和度，极具前卫开发者工具的质感。</p>
+      </div>
+    </div>
+
+    <!-- SECTION: Static Draft Images -->
+    <div class="section-title">方案 A / B 静态大图草稿 (本地文件引用)</div>
+
+    <!-- Option A Image -->
+    <div class="logo-card">
+      <img src="fluent_3d.jpg" alt="Option A: Fluent 3D Draft" class="draft-img">
+      <div class="logo-meta">
+        <h3>fluent_3d.jpg</h3>
+        <p>在本地查看大图：<br><a href="fluent_3d.jpg" style="color: #69ad9b; text-decoration: none;">doc/logo/fluent_3d.jpg</a></p>
+      </div>
+    </div>
+
+    <!-- Option B Image -->
+    <div class="logo-card">
+      <img src="flat_neon.jpg" alt="Option B: Flat Neon Draft" class="draft-img">
+      <div class="logo-meta">
+        <h3>flat_neon.jpg</h3>
+        <p>在本地查看大图：<br><a href="flat_neon.jpg" style="color: #69ad9b; text-decoration: none;">doc/logo/flat_neon.jpg</a></p>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
