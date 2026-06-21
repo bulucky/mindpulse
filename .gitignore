@@ -6,3 +6,12 @@ DESIGN.md
 
 # test
 tests
+
+# Fonts
+*.ttf
+
+# Scripts
+*.py
+
+# env
+*.venv

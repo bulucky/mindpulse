@@ -2,6 +2,11 @@ set(MAIN_SOURCES
     main.cpp
 )
 
+# Windows resource file: embeds the application icon into the .exe
+if(WIN32)
+    list(APPEND MAIN_SOURCES mindpulse.rc)
+endif()
+
 add_executable(${PROJECT_NAME} WIN32
     ${MAIN_SOURCES}
 )

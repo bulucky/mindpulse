@@ -1,0 +1,29 @@
+// MindPulse Windows resource file
+// Application icon — embedded into the executable by the resource compiler.
+// CMake picks this up automatically; no extra configuration needed on MSVC (rc.exe)
+// or MinGW (windres).
+
+IDI_ICON1 ICON "mindpulse.ico"
+
+// Version info block — displayed in File Explorer → Properties → Details
+1 VERSIONINFO
+FILEVERSION     0,1,0,0
+PRODUCTVERSION  0,1,0,0
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription", "MindPulse - AI coding tool status indicator"
+            VALUE "InternalName",    "mindpulse"
+            VALUE "LegalCopyright",  "MIT License (c) 2026 bulucky"
+            VALUE "OriginalFilename","mindpulse.exe"
+            VALUE "ProductName",     "MindPulse"
+            VALUE "ProductVersion",  "0.1.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END
