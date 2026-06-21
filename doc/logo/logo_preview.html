@@ -142,8 +142,7 @@
     }
 
     .fluent-pulse-path {
-      transform-origin: 28px 28px;
-      animation: pulse-beat 1.8s ease-in-out infinite;
+      stroke: rgba(255, 255, 255, 0.85);
     }
 
     /* Option B Visual Mockup */
@@ -172,8 +171,7 @@
     }
 
     .flat-pulse-path {
-      transform-origin: 28px 28px;
-      animation: pulse-beat 1.8s ease-in-out infinite;
+      stroke: rgba(255, 255, 255, 0.85);
     }
 
     .draft-img {
@@ -218,14 +216,6 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-
-    @keyframes pulse-beat {
-      0%, 100% { transform: scale(1); opacity: 0.55; }
-      12.5% { transform: scale(1.16); opacity: 1.0; }
-      25% { transform: scale(0.95); opacity: 0.4; }
-      37.5% { transform: scale(1.08); opacity: 0.95; }
-      50%, 100% { transform: scale(1); opacity: 0.55; }
-    }
   </style>
 </head>
 <body>
@@ -263,13 +253,13 @@
         <div class="fluent-icon-bg">
           <svg class="fluent-logo-svg" viewBox="0 0 56 56">
             <circle class="fluent-ring-circle" stroke="url(#grad1)" cx="28" cy="28" r="24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="31.07 19.20" />
-            <path class="fluent-pulse-path" stroke="url(#grad1)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M 14 28 L 20 28 L 22 31 L 25 14 L 28 42 L 31 30 L 33 28 L 42 28" />
+            <path class="fluent-pulse-path" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M 14 28 L 20 28 L 22 31 L 25 14 L 28 42 L 31 30 L 33 28 L 42 28" />
           </svg>
         </div>
       </div>
       <div class="logo-meta">
         <h3>方案 A: Windows 11 Fluent 3D</h3>
-        <p>契合 Windows 11 Fluent 设计规范。微光毛玻璃感、圆润倒角、深色混合渐变背景，使旋转的渐变呼吸灯与脉搏心跳呈现精细的立体反射效果。</p>
+        <p>契合 Windows 11 Fluent 设计规范。微光毛玻璃感、圆润倒角、深色混合渐变背景，使旋转的渐变呼吸灯与中心白色静止心跳线呈现精细的立体反射效果。</p>
       </div>
     </div>
 
@@ -279,13 +269,13 @@
         <div class="flat-icon-bg">
           <svg class="flat-logo-svg" viewBox="0 0 56 56">
             <circle class="flat-ring-circle" stroke="url(#grad2)" cx="28" cy="28" r="24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="31.07 19.20" />
-            <path class="flat-pulse-path" stroke="url(#grad2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M 14 28 L 20 28 L 22 31 L 25 14 L 28 42 L 31 30 L 33 28 L 42 28" />
+            <path class="flat-pulse-path" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M 14 28 L 20 28 L 22 31 L 25 14 L 28 42 L 31 30 L 33 28 L 42 28" />
           </svg>
         </div>
       </div>
       <div class="logo-meta">
         <h3>方案 B: Ultra-minimalist Neon Vector</h3>
-        <p>极致极客扁平风。纯黑背景衬托强对比度的霓虹旋转呼吸环与中心心跳脉搏线。静中有动，完美点题“MindPulse”心率脉动的设计理念。</p>
+        <p>极致极客扁平风。纯黑背景衬托强对比度的霓虹旋转呼吸环与中心白色静止心跳线。白色的心率基准线静止稳定，与旋转圆环完美动静结合，点题“MindPulse”设计理念。</p>
       </div>
     </div>
 
