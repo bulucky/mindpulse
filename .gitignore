@@ -6,3 +6,9 @@ DESIGN.md
 
 # test
 tests
+
+# Fonts
+*.woff2
+
+# Scripts
+*.py
