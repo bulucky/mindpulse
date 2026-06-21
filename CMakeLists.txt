@@ -11,7 +11,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-
 include(FetchContent)
 
 FetchContent_Declare(
@@ -41,10 +40,14 @@ FetchContent_Declare(
     GIT_TAG v1.17.x
 )
 
-FetchContent_MakeAvailable(httplib json googletest yaml-cpp)
-enable_testing()
+FetchContent_MakeAvailable(httplib json yaml-cpp)
 
+# googletest and tests/ are only available in dev environments (excluded from release builds by .gitignore)
+if(EXISTS ${CMAKE_SOURCE_DIR}/tests AND EXISTS ${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt)
+    FetchContent_MakeAvailable(googletest)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 add_subdirectory(src)
-add_subdirectory(tests)
 
