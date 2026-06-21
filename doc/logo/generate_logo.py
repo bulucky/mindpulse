@@ -23,6 +23,17 @@ def draw_smooth_line_segment(draw, p1, p2, radius, fill):
         y = y1 + dy * t
         draw.ellipse([x - radius, y - radius, x + radius, y + radius], fill=fill)
 
+def get_interpolated_color(t, c1, cmid, c3):
+    """
+    针对三 stop 渐变进行分段线性插值计算颜色
+    """
+    if t <= 0.5:
+        u = 2.0 * t
+        return c1 * (1.0 - u) + cmid * u
+    else:
+        u = 2.0 * t - 1.0
+        return cmid * (1.0 - u) + c3 * u
+
 def generate_logo():
     # 1. 渲染尺寸参数 (4x 超采样)
     base_size = 512
@@ -40,11 +51,13 @@ def generate_logo():
     # 创建画布 (RGBA)
     img = Image.new("RGBA", (size, size), (0, 0, 0, 255))
     
-    # 2. 构造线性渐变背景 (从左上到右下)
-    # 颜色起点: 碧绿 #69ad9b (105, 173, 155)
-    # 颜色终点: 薰衣草紫 #61649f (97, 100, 159)
-    color_start = np.array([105.0, 173.0, 155.0])
-    color_end = np.array([97.0, 100.0, 159.0])
+    # 2. 构造线性渐变背景 (从左上到右下，包含三个 Stop)
+    # Stop 0%   : 碧绿 #69ad9b (105, 173, 155)
+    # Stop 50%  : 靛蓝 #9b9eff (155, 158, 255)
+    # Stop 100% : 薰衣草紫 #61649f (97, 100, 159)
+    c1 = np.array([105.0, 173.0, 155.0])
+    cmid = np.array([155.0, 158.0, 255.0])
+    c3 = np.array([97.0, 100.0, 159.0])
 
     # 用 numpy 构建像素坐标矩阵并计算距离和角度
     y_idx, x_idx = np.ogrid[0:size, 0:size]
@@ -84,10 +97,16 @@ def generate_logo():
     x_grid, y_grid = np.meshgrid(np.arange(size), np.arange(size))
     t_mask = (x_grid + y_grid) / (2.0 * size)
 
-    # 生成 RGB 渐变矩阵
-    r_channel = color_start[0] * (1.0 - t_mask) + color_end[0] * t_mask
-    g_channel = color_start[1] * (1.0 - t_mask) + color_end[1] * t_mask
-    b_channel = color_start[2] * (1.0 - t_mask) + color_end[2] * t_mask
+    # 采用三 Stop 渐变生成 RGB 矩阵
+    r_channel = np.where(t_mask <= 0.5,
+                         c1[0] * (1.0 - 2.0*t_mask) + cmid[0] * (2.0*t_mask),
+                         cmid[0] * (2.0 - 2.0*t_mask) + c3[0] * (2.0*t_mask - 1.0))
+    g_channel = np.where(t_mask <= 0.5,
+                         c1[1] * (1.0 - 2.0*t_mask) + cmid[1] * (2.0*t_mask),
+                         cmid[1] * (2.0 - 2.0*t_mask) + c3[1] * (2.0*t_mask - 1.0))
+    b_channel = np.where(t_mask <= 0.5,
+                         c1[2] * (1.0 - 2.0*t_mask) + cmid[2] * (2.0*t_mask),
+                         cmid[2] * (2.0 - 2.0*t_mask) + c3[2] * (2.0*t_mask - 1.0))
 
     # 应用掩膜将圆环写入画布
     img_data = np.array(img)
@@ -107,24 +126,24 @@ def generate_logo():
         
         # 获得该坐标下的线性渐变插值
         t = (ex + ey) / (2.0 * size)
-        color = tuple((color_start * (1.0 - t) + color_end * t).astype(int))
+        color = tuple(get_interpolated_color(t, c1, cmid, c3).astype(int))
         
         # 绘制圆点
         draw.ellipse([ex - r_cap, ey - r_cap, ex + r_cap, ey + r_cap], fill=color + (255,))
 
-    # 4. 绘制中心静止的纯白心跳脉搏线
-    # 使用超平滑扫掠算法绘制折线，线宽约 80px，带有完美圆润的转角
+    # 4. 绘制中心静止的纯白心跳脉搏线 (比例完全参照 HTML SVG 渲染比例: EKG线尺寸/圆环尺寸 ≈ 58.33%)
+    # 笔刷宽度为 60px 确保缩放后与圆环宽度比例完美契合
     ekg_points = [
-        (512, 1024),
-        (732, 1024),
-        (804, 1132),
-        (916, 512),
-        (1024, 1536),
-        (1132, 1096),
-        (1208, 1024),
-        (1536, 1024)
+        (643, 1024),
+        (806, 1024),
+        (861, 1106),
+        (942, 643),
+        (1024, 1406),
+        (1106, 1079),
+        (1160, 1024),
+        (1406, 1024)
     ]
-    r_ekg = 40 # 心跳线半径
+    r_ekg = 30 # EKG笔刷半径 (宽度 60px)
     for i in range(len(ekg_points) - 1):
         draw_smooth_line_segment(draw, ekg_points[i], ekg_points[i+1], r_ekg, (255, 255, 255, 255))
 
