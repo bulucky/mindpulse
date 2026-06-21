@@ -27,10 +27,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 if(WIN32)
     add_compile_definitions(_WIN32_WINNT=0x0A00)
     target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32)
-    # MinGW headers lack GetAddrInfoExCancel — disable httplib non-blocking resolver
-    if(MINGW)
-        add_compile_definitions(CPPHTTPLIB_NO_NON_BLOCKING_GETADDRINFO)
-    endif()
 endif()
 
 if(MINGW)

@@ -40,6 +40,9 @@ FetchContent_Declare(
     GIT_TAG v1.17.x
 )
 
+# httplib non-blocking resolver requires GetAddrInfoExCancel, which is
+# missing from MinGW headers. MindPulse is localhost-only — blocking is fine.
+set(HTTPLIB_USE_NON_BLOCKING_GETADDRINFO OFF)
 FetchContent_MakeAvailable(httplib json yaml-cpp)
 
 # googletest and tests/ are only available in dev environments (excluded from release builds by .gitignore)
