@@ -11,7 +11,8 @@
 
 TrayWin::TrayWin()
     : hwnd_(NULL),
-      current_hicon_(NULL) {
+      current_hicon_(NULL),
+      taskbar_created_msg_(0) {
     std::memset(&nid_, 0, sizeof(nid_));
 }
 
@@ -28,6 +29,7 @@ TrayWin::~TrayWin() {
 
 bool TrayWin::init() {
     HINSTANCE hInst = GetModuleHandleA(NULL);
+    taskbar_created_msg_ = RegisterWindowMessageA("TaskbarCreated");
 
     // 1. 注册隐藏辅助窗口的窗口类
     WNDCLASSEXA wc;
@@ -69,7 +71,7 @@ bool TrayWin::init() {
     std::strcpy(nid_.szTip, "MindPulse");
 
     // 添加空托盘图标占位
-    if (!Shell_NotifyIconA(NIM_ADD, &nid_)) {
+    if (!restore_tray_icon()) {
         return false;
     }
 
@@ -86,15 +88,23 @@ bool TrayWin::update_icon(const std::vector<uint8_t>& bgra_buffer, int width, in
         return false;
     }
 
+    HICON hOldIcon = current_hicon_;
+    UINT old_flags = nid_.uFlags;
+
     nid_.hIcon = hNewIcon;
     nid_.uFlags |= NIF_ICON;
 
-    // 修改托盘中的图标
-    Shell_NotifyIconA(NIM_MODIFY, &nid_);
+    // 修改托盘中的图标；Explorer 重启后 NIM_MODIFY 可能失败，此时尝试重新添加。
+    if (!Shell_NotifyIconA(NIM_MODIFY, &nid_) && !restore_tray_icon()) {
+        nid_.hIcon = hOldIcon;
+        nid_.uFlags = old_flags;
+        DestroyIcon(hNewIcon);
+        return false;
+    }
 
     // 销毁旧图标避免 GDI 泄漏
-    if (current_hicon_) {
-        DestroyIcon(current_hicon_);
+    if (hOldIcon) {
+        DestroyIcon(hOldIcon);
     }
     current_hicon_ = hNewIcon;
 
@@ -105,7 +115,9 @@ void TrayWin::set_tooltip(const std::string& tooltip) {
     std::memset(nid_.szTip, 0, sizeof(nid_.szTip));
     std::strncpy(nid_.szTip, tooltip.c_str(), sizeof(nid_.szTip) - 1);
     nid_.uFlags |= NIF_TIP;
-    Shell_NotifyIconA(NIM_MODIFY, &nid_);
+    if (!Shell_NotifyIconA(NIM_MODIFY, &nid_)) {
+        restore_tray_icon();
+    }
 }
 
 void TrayWin::add_menu_item(const TrayMenuItem& item) {
@@ -133,6 +145,10 @@ LRESULT CALLBACK TrayWin::window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
     }
 
     if (self) {
+        if (uMsg == self->taskbar_created_msg_) {
+            self->restore_tray_icon();
+            return 0;
+        }
         if (uMsg == WM_TRAYICON) {
             self->handle_tray_icon_event(lParam);
             return 0;
@@ -186,6 +202,10 @@ void TrayWin::show_context_menu() {
             }
         }
     }
+}
+
+bool TrayWin::restore_tray_icon() {
+    return Shell_NotifyIconA(NIM_ADD, &nid_) || Shell_NotifyIconA(NIM_MODIFY, &nid_);
 }
 
 HICON TrayWin::create_hicon_from_bgra(const std::vector<uint8_t>& bgra_buffer, int width, int height) {

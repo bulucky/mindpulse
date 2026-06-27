@@ -7,6 +7,7 @@
 
 #include <string>
 #include <filesystem>
+#include <mutex>
 #include <unordered_map>
 #include "yaml_parser.h"
 
@@ -65,4 +66,5 @@ private:
 
     std::filesystem::path config_dir_;                         ///< 配置文件根路径
     std::unordered_map<std::string, ToolConfig> tool_configs_; ///< 运行时工具配置映射缓存区 (Buffer)
+    mutable std::mutex mutex_;                                 ///< 保护配置缓存和热重载
 };

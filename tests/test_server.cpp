@@ -153,3 +153,23 @@ TEST(HttpServerTest, DispatchEventsToStateMachine) {
     server.stop();
     EXPECT_FALSE(server.is_running());
 }
+
+TEST(HttpServerTest, StartFailsWhenPortIsAlreadyBound) {
+    std::string config_dir = "./config";
+    if (!std::filesystem::exists(config_dir)) {
+        config_dir = "../config";
+    }
+
+    ConfigManager config_mgr(config_dir);
+    StateMachine state_machine;
+
+    HttpServer first_server(config_mgr, state_machine);
+    ASSERT_TRUE(first_server.start("127.0.0.1", 19877));
+
+    HttpServer second_server(config_mgr, state_machine);
+    EXPECT_FALSE(second_server.start("127.0.0.1", 19877));
+    EXPECT_FALSE(second_server.is_running());
+
+    first_server.stop();
+    EXPECT_FALSE(first_server.is_running());
+}

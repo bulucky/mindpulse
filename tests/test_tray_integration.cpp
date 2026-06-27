@@ -8,6 +8,7 @@
 #include "icon_renderer.h"
 #include "tray.h"
 #include <chrono>
+#include <cstdlib>
 #include <thread>
 #include <string>
 #include <vector>
@@ -29,6 +30,10 @@ static std::string get_state_string(BreathState state) {
 
 // 集成测试：联合驱动四种不同状态下的呼适应擎、渲染器更新至系统托盘中进行视觉与功能验证
 TEST(TrayIntegrationTest, RunAnimationOnTray) {
+    if (std::getenv("MINDPULSE_RUN_TRAY_VISUAL_TEST") == nullptr) {
+        GTEST_SKIP() << "Set MINDPULSE_RUN_TRAY_VISUAL_TEST=1 to run the visual tray animation test.";
+    }
+
     auto tray = create_platform_tray();
     ASSERT_NE(tray, nullptr);
     EXPECT_TRUE(tray->init());

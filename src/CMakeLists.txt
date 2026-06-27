@@ -25,7 +25,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 if(WIN32)
-    add_compile_definitions(_WIN32_WINNT=0x0A00)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE _WIN32_WINNT=0x0A00)
     target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32)
 endif()
 

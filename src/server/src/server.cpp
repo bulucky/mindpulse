@@ -58,6 +58,14 @@ static const char* event_to_string(StateMachineEvent event) {
 HttpServer::HttpServer(ConfigManager& config_mgr, StateMachine& state_machine)
     : config_mgr_(config_mgr), state_machine_(state_machine), port_(9876) {
 
+#ifdef _WIN32
+    // Windows 的 SO_REUSEADDR 允许多个进程绑定同一端口；本地 hook 服务需要独占端口。
+    svr_.set_socket_options([](socket_t sock) {
+        int opt = 1;
+        setsockopt(sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, reinterpret_cast<const char*>(&opt), sizeof(opt));
+    });
+#endif
+
     // 注册核心 Hook 接收端路由 (使用正则路径捕获 tool_id)
     svr_.Post(R"(/hook/([a-zA-Z0-9_\-]+))", [this](const httplib::Request& req, httplib::Response& res) {
         std::string tool_id = req.matches[1].str();
@@ -184,23 +192,38 @@ HttpServer::~HttpServer() {
 }
 
 bool HttpServer::start(const std::string& host, int port) {
-    if (is_running_) {
+    if (is_running_ || (worker_thread_ && worker_thread_->joinable())) {
         return false;
     }
 
     host_ = host;
     port_ = port;
-    is_running_ = true;
+
+    if (!svr_.bind_to_port(host_.c_str(), port_)) {
+        std::printf("[HttpServer] failed to bind on %s:%d; the port may already be in use.\n", host_.c_str(), port_);
+        return false;
+    }
 
     // 创建后台工作线程启动 listen 阻塞监听
     worker_thread_ = std::make_unique<std::thread>(&HttpServer::run, this);
+    svr_.wait_until_ready();
+    if (!svr_.is_running()) {
+        if (worker_thread_->joinable()) {
+            worker_thread_->join();
+        }
+        worker_thread_.reset();
+        is_running_ = false;
+        return false;
+    }
+
+    is_running_ = true;
 
     std::printf("[HttpServer] service thread started; listening on %s:%d...\n", host_.c_str(), port_);
     return true;
 }
 
 void HttpServer::stop() {
-    if (!is_running_) {
+    if (!is_running_ && !(worker_thread_ && worker_thread_->joinable())) {
         return;
     }
 
@@ -221,12 +244,11 @@ bool HttpServer::is_running() const {
 
 void HttpServer::run() {
     try {
-        if (!svr_.listen(host_.c_str(), port_)) {
-            std::printf("[HttpServer] failed to listen on %s:%d; the port may already be in use.\n", host_.c_str(), port_);
-            is_running_ = false;
+        if (!svr_.listen_after_bind()) {
+            std::printf("[HttpServer] listen loop exited on %s:%d.\n", host_.c_str(), port_);
         }
     } catch (const std::exception& e) {
         std::printf("[HttpServer] runtime exception: %s\n", e.what());
-        is_running_ = false;
     }
+    is_running_ = false;
 }

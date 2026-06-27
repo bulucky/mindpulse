@@ -51,6 +51,11 @@ private:
     void show_context_menu();
 
     /**
+     * @brief Explorer/托盘重启或修改失败后重新注册托盘图标
+     */
+    bool restore_tray_icon();
+
+    /**
      * @brief 从原始 BGRA 内存缓冲区创建一个 Windows HICON 图标句柄
      */
     HICON create_hicon_from_bgra(const std::vector<uint8_t>& bgra_buffer, int width, int height);
@@ -59,6 +64,7 @@ private:
     NOTIFYICONDATAA nid_;                                            ///< Windows 托盘图标数据结构
     HICON current_hicon_;                                            ///< 当前显示的图标句柄
     std::vector<TrayMenuItem> menu_items_;                           ///< 绑定的右键菜单项
+    UINT taskbar_created_msg_;                                       ///< Explorer 重启后广播的托盘重建消息
 
     static const UINT WM_TRAYICON = WM_USER + 1;                     ///< 托盘回调自定义消息
     static constexpr const char* CLASS_NAME = "MindPulseTrayWindow"; ///< 隐藏窗口的类名

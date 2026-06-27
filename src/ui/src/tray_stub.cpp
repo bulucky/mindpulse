@@ -5,7 +5,7 @@
 
 #ifndef _WIN32
 
-#include "ui/tray.h"
+#include "tray.h"
 #include <iostream>
 
 /**

@@ -5,6 +5,7 @@
 
 #include "config_manager.h"
 #include <yaml-cpp/yaml.h>
+#include <cstdio>
 #include <fstream>
 // #include <iostream>
 
@@ -19,6 +20,7 @@ ConfigManager::ConfigManager(const std::string& config_dir)
 }
 
 StateMachineEvent ConfigManager::get_event_mapping(const std::string& tool_id, const std::string& raw_event_name) {
+    std::lock_guard<std::mutex> lock(mutex_);
     std::filesystem::path filepath = config_dir_ / (tool_id + ".yaml");
 
     // 1. 文件不存在则自动生成默认备份模板
@@ -52,6 +54,7 @@ StateMachineEvent ConfigManager::get_event_mapping(const std::string& tool_id, c
 }
 
 std::string ConfigManager::get_tool_name(const std::string& tool_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
     auto it = tool_configs_.find(tool_id);
     if (it != tool_configs_.end() && it->second.loaded) {
         return it->second.tool_name;
@@ -60,6 +63,7 @@ std::string ConfigManager::get_tool_name(const std::string& tool_id) {
 }
 
 void ConfigManager::preload_tool_config(const std::string& tool_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
     std::filesystem::path filepath = config_dir_ / (tool_id + ".yaml");
     if (!std::filesystem::exists(filepath)) {
         write_default_config_if_missing(tool_id);

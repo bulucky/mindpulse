@@ -127,14 +127,16 @@ int run_app() {
     // 6. 进入 60fps 主更新循环
     const double target_dt = 0.016; // 约 60fps
     auto last_time = std::chrono::steady_clock::now();
+    BreathState last_tooltip_state = BreathState::STOPPED;
+    bool tooltip_dirty = true;
+    bool icon_update_failed_logged = false;
 
     while (app_running) {
         // a. 处理 Windows 辅助窗口的所有排队消息 (驱动右键菜单与回调事件)
         tray->pump_messages();
 
         // b. 状态机时间步进，并拉取当前全局聚合状态
-        state_machine.tick(target_dt);
-        BreathState agg_state = state_machine.get_aggregate_state();
+        BreathState agg_state = state_machine.tick(target_dt);
 
         // c. 将全局聚合状态推进动画引擎，平滑过渡转换
         if (breath_engine.get_current_state() != agg_state) {
@@ -151,10 +153,22 @@ int run_app() {
             breath_engine.get_current_color());
 
         // f. 将最新像素写入托盘图标，并更新悬停提示内容
-        tray->update_icon(bgra_buffer, 32, 32);
+        if (!tray->update_icon(bgra_buffer, 32, 32)) {
+            if (!icon_update_failed_logged) {
+                std::printf("[Main] Failed to update tray icon; will keep retrying.\n");
+                icon_update_failed_logged = true;
+            }
+        } else {
+            icon_update_failed_logged = false;
+        }
 
-        std::string tooltip = "MindPulse - Status: " + get_state_tooltip(breath_engine.get_current_state());
-        tray->set_tooltip(tooltip);
+        BreathState tooltip_state = breath_engine.get_current_state();
+        if (tooltip_dirty || tooltip_state != last_tooltip_state) {
+            std::string tooltip = "MindPulse - Status: " + get_state_tooltip(tooltip_state);
+            tray->set_tooltip(tooltip);
+            last_tooltip_state = tooltip_state;
+            tooltip_dirty = false;
+        }
 
         // g. 进行帧率节流，防止占用过多 CPU
         auto current_time = std::chrono::steady_clock::now();

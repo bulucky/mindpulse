@@ -28,7 +28,7 @@ target_link_libraries(mindpulse_tests PRIVATE
 )
 
 if(WIN32)
-    add_compile_definitions(_WIN32_WINNT=0x0A00)
+    target_compile_definitions(mindpulse_tests PRIVATE _WIN32_WINNT=0x0A00)
     target_link_libraries(mindpulse_tests PRIVATE ws2_32)
 endif()
 
